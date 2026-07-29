@@ -22,7 +22,7 @@
 2. **Two conversion paths.** Rule-based always works offline. LLM path is optional (user key; default xAI `https://api.x.ai/v1`, model `grok-3`).
 3. **Cloudflare is the delivery plane** for the product site. GitHub holds source/history only (no GitHub Pages).
 4. **No auth, no database, no secrets in repo.** User pastes API keys client-side / Streamlit session only.
-5. **f00 aesthetic** on the public site (phosphor, mono, dense tables).
+5. **f00 aesthetic** on the public site: white on black, Onyx via https://f00.sh/theme/f00-theme.css (dense tables OK; no phosphor green).
 6. **Documentation pack is automatic** on every release (NASA SOP PDF, this-version memo PDF, CHANGELOG, README, Pages, man, file_id.diz).
 
 ## Layout
