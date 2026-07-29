@@ -22,7 +22,7 @@
 2. **Two conversion paths.** Rule-based always works offline. LLM path is optional (user key; default xAI `https://api.x.ai/v1`, model `grok-3`).
 3. **Cloudflare is the delivery plane** for the product site. GitHub holds source/history only (no GitHub Pages).
 4. **No auth, no database, no secrets in repo.** User pastes API keys client-side / Streamlit session only.
-5. **f00 aesthetic** on the public site: Heartbox palette (default f00 theme) via https://f00.sh/theme/f00-theme-14.css — Onyx brand, zine body, chip chrome (dense tables OK; no phosphor green).
+5. **f00 aesthetic** on the public site: Heartbox palette (default f00 theme) via https://f00.sh/theme/f00-theme.css — Onyx brand, zine body, chip chrome (dense tables OK; no phosphor green).
 6. **Documentation pack is automatic** on every release (NASA SOP PDF, this-version memo PDF, CHANGELOG, README, Pages, man, file_id.diz).
 
 ## Layout
@@ -70,4 +70,4 @@ npx wrangler pages dev site --compatibility-date=2026-07-01
 
 - **Contrasts:** Nirvana *Heart-Shaped Box* video / Heartbox palette — hospital-night bg, cream fg, poppy accent, verse sky, silver metal.
 - **Text & boxes:** Nirvana *Bleach* album — hard square frames, catalog mono labels, no rounded glass, thin rules, raw liner-note density.
-- Theme CSS: `https://f00.sh/theme/f00-theme-14.css` (do not invent brand hex or soft UI radii).
+- **ONE shared org CSS:** `https://f00.sh/theme/f00-theme.css` (hub domain; all subdomains). Product CSS = layout only (do not invent brand hex or soft UI radii).
