@@ -58,7 +58,7 @@ body {
 }
 .skip:focus { left: 0; }
 
-.mono { font-family: var(--font); }
+.mono { font-family: var(--mono) !important; }
 
 .top, main, .foot {
   position: relative;
@@ -78,18 +78,24 @@ body {
 .brand {
   text-decoration: none;
   color: var(--fg);
-  font-family: var(--font);
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.04em;
 }
-.brand-mark { color: var(--accent); }
-.brand-sub { color: var(--muted); }
+.brand-mark {
+  font-family: var(--font-display);
+  color: var(--accent);
+  letter-spacing: 0.08em;
+}
+.brand-sub {
+  font-family: var(--font-hand);
+  color: var(--muted);
+}
 
 .nav {
   display: flex;
   gap: 1rem;
-  font-family: var(--font);
-  font-size: 0.85rem;
+  font-family: var(--font-hand);
+  font-size: 1.15rem;
 }
 .nav a {
   color: var(--muted);
@@ -120,18 +126,20 @@ main {
   box-shadow: 0 0 8px var(--accent);
 }
 .hero h1 {
-  font-family: var(--font);
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
   margin: 0 0 0.75rem;
-  color: var(--accent);
+  color: var(--fg);
 }
 .lede {
   max-width: 42rem;
   color: var(--muted);
   margin: 0;
   font-size: 1.05rem;
+  font-family: var(--mono);
+  line-height: 1.65;
 }
 .lede strong { color: var(--fg); font-weight: 600; }
 
@@ -153,12 +161,13 @@ main {
   margin-bottom: 1rem;
 }
 .panel h2 {
-  font-family: var(--font);
-  font-size: 1rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   margin: 0 0 0.75rem;
-  color: var(--accent-dim);
+  color: var(--muted);
+  font-weight: 400;
 }
 .panel-head h2 { margin: 0; }
 
@@ -195,7 +204,7 @@ main {
   flex-direction: column;
   gap: 0.35rem;
   font-size: 0.8rem;
-  font-family: var(--font);
+  font-family: var(--mono);
   color: var(--muted);
   margin-bottom: 0.85rem;
 }
@@ -205,7 +214,7 @@ input[type="url"],
 input[type="text"],
 input[type="password"],
 textarea {
-  font-family: var(--font);
+  font-family: var(--mono);
   font-size: 0.9rem;
   color: var(--fg);
   background: var(--bg);
@@ -229,7 +238,7 @@ textarea { resize: vertical; min-height: 10rem; line-height: 1.45; }
 }
 
 .btn {
-  font-family: var(--font);
+  font-family: var(--mono);
   font-size: 0.85rem;
   font-weight: 600;
   border-radius: 4px;
@@ -267,7 +276,7 @@ textarea { resize: vertical; min-height: 10rem; line-height: 1.45; }
 
 .results { margin-top: 1.25rem; }
 .result-meta h3 {
-  font-family: var(--font);
+  font-family: var(--mono);
   margin: 0 0 0.25rem;
   font-size: 1.15rem;
 }
@@ -283,7 +292,7 @@ textarea { resize: vertical; min-height: 10rem; line-height: 1.45; }
 table.trn {
   border-collapse: collapse;
   width: 100%;
-  font-family: var(--font);
+  font-family: var(--mono);
   font-size: 0.78rem;
   min-width: 36rem;
 }
@@ -324,7 +333,7 @@ table.trn td { color: var(--fg); }
 }
 .fold summary {
   cursor: pointer;
-  font-family: var(--font);
+  font-family: var(--mono);
   font-size: 0.85rem;
   color: var(--accent-dim);
   padding: 0.35rem 0;
@@ -358,7 +367,7 @@ table.trn td { color: var(--fg); }
 .howto li { margin-bottom: 0.4rem; }
 .howto strong, .howto code { color: var(--fg); }
 .howto code {
-  font-family: var(--font);
+  font-family: var(--mono);
   font-size: 0.85em;
   background: rgba(255, 255, 255, 0.06);
   padding: 0.05em 0.3em;
@@ -413,7 +422,7 @@ table.trn td { color: var(--fg); }
 table.trn.cfe {
   border-collapse: collapse;
   width: 100%;
-  font-family: var(--font);
+  font-family: var(--mono);
   font-size: 0.78rem;
   min-width: 36rem;
 }
