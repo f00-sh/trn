@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Table output now matches Cooking for Engineers TRN: ingredient column + process timeline, rowspan mixture groups, preheat banner — not a "stage header" grid of per-cell keywords.
+
 ### Fixed
 
 - Site Convert button did nothing: `app.js` used Python-style `(?im)` regex flags, which is a SyntaxError in browsers so the script never loaded. Convert now binds and reports status/errors.

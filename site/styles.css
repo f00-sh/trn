@@ -1,16 +1,5 @@
-/* TRN — f00 phosphor surface */
+/* TRN layout — brand tokens: https://f00.sh/theme/f00-theme.css */
 :root {
-  color-scheme: dark;
-  --bg: oklch(12% 0.01 130);
-  --bg-2: oklch(16% 0.015 130);
-  --fg: oklch(92% 0.02 130);
-  --muted: oklch(68% 0.02 130);
-  --accent: oklch(84% 0.19 140);
-  --accent-dim: oklch(70% 0.12 140);
-  --line: oklch(30% 0.02 130);
-  --danger: oklch(70% 0.18 25);
-  --font: "IBM Plex Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
-  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --max: 56rem;
   --pad: clamp(1rem, 3vw, 2rem);
 }
@@ -35,7 +24,7 @@ body {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(120% 80% at 50% 0%, oklch(22% 0.04 140 / 0.35), transparent 55%),
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.06), transparent 55%),
     var(--bg);
 }
 
@@ -46,8 +35,8 @@ body {
     to bottom,
     transparent 0,
     transparent 2px,
-    oklch(0% 0 0 / 0.12) 2px,
-    oklch(0% 0 0 / 0.12) 3px
+    rgba(0, 0, 0, 0.12) 2px,
+    rgba(0, 0, 0, 0.12) 3px
   );
   opacity: 0.45;
 }
@@ -55,7 +44,7 @@ body {
 .vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 40%, oklch(0% 0 0 / 0.5) 100%);
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
 }
 
 .skip {
@@ -63,7 +52,7 @@ body {
   left: -999px;
   top: 0;
   background: var(--accent);
-  color: #0a0b09;
+  color: #000000;
   padding: 0.5rem 1rem;
   z-index: 100;
 }
@@ -147,7 +136,7 @@ main {
 .lede strong { color: var(--fg); font-weight: 600; }
 
 .panel {
-  background: oklch(14% 0.012 130 / 0.92);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 1.25rem 1.25rem 1.5rem;
@@ -189,7 +178,7 @@ main {
   border-radius: 4px;
   padding: 0.85rem;
   margin-bottom: 1rem;
-  background: oklch(12% 0.01 130);
+  background: var(--bg);
 }
 .hint {
   margin: 0 0 0.75rem;
@@ -219,7 +208,7 @@ textarea {
   font-family: var(--font);
   font-size: 0.9rem;
   color: var(--fg);
-  background: oklch(10% 0.01 130);
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 0.55rem 0.65rem;
@@ -253,7 +242,7 @@ textarea { resize: vertical; min-height: 10rem; line-height: 1.45; }
 }
 .btn.primary {
   background: var(--accent);
-  color: #0a0b09;
+  color: #000000;
   border-color: var(--accent);
 }
 .btn.primary:hover { filter: brightness(1.05); }
@@ -306,21 +295,21 @@ table.trn th, table.trn td {
 }
 table.trn th {
   background: var(--accent);
-  color: #0a0b09;
+  color: #000000;
   font-weight: 700;
   white-space: nowrap;
 }
 table.trn td:first-child {
-  background: oklch(18% 0.02 130);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--fg);
   font-weight: 600;
   white-space: nowrap;
   max-width: 14em;
 }
 table.trn tr:nth-child(even) td:not(:first-child) {
-  background: oklch(13% 0.01 130);
+  background: rgba(255, 255, 255, 0.03);
 }
-table.trn td { color: oklch(85% 0.02 130); }
+table.trn td { color: var(--fg); }
 
 .result-actions {
   display: flex;
@@ -343,7 +332,7 @@ table.trn td { color: oklch(85% 0.02 130); }
 .fold pre {
   margin: 0.5rem 0 0;
   padding: 0.75rem;
-  background: oklch(10% 0.01 130);
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 4px;
   overflow: auto;
@@ -371,7 +360,7 @@ table.trn td { color: oklch(85% 0.02 130); }
 .howto code {
   font-family: var(--font);
   font-size: 0.85em;
-  background: oklch(18% 0.02 130);
+  background: rgba(255, 255, 255, 0.06);
   padding: 0.05em 0.3em;
   border-radius: 3px;
 }
@@ -379,7 +368,7 @@ table.trn td { color: oklch(85% 0.02 130); }
 .code {
   margin: 0 0 1rem;
   padding: 0.85rem 1rem;
-  background: oklch(10% 0.01 130);
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 4px;
   overflow-x: auto;
@@ -417,4 +406,47 @@ table.trn td { color: oklch(85% 0.02 130); }
 @media (max-width: 640px) {
   .nav { gap: 0.65rem; font-size: 0.75rem; }
   .panel { padding: 1rem; }
+}
+
+
+/* CFE TRN matrix */
+table.trn.cfe {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font);
+  font-size: 0.78rem;
+  min-width: 36rem;
+}
+table.trn.cfe td {
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.55rem;
+  vertical-align: middle;
+}
+table.trn.cfe td.ing {
+  background: oklch(18% 0.02 130);
+  color: var(--fg);
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: left;
+  max-width: 16em;
+}
+table.trn.cfe td.act {
+  background: oklch(14% 0.02 130);
+  color: var(--accent);
+  font-weight: 600;
+  text-align: center;
+}
+table.trn.cfe td.empty {
+  background: oklch(11% 0.01 130);
+}
+table.trn.cfe tr.banner td {
+  background: var(--accent);
+  color: #0a0b09;
+  font-weight: 700;
+  text-align: left;
+}
+table.trn.cfe tr.banner td.banner-ing {
+  width: 0;
+  padding: 0;
+  border-right: none;
 }

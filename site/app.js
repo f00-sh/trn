@@ -1,62 +1,55 @@
-/* TRN site converter — rule-based + optional LLM (browser). */
+/* TRN site — Cooking for Engineers–style process matrix */
 (() => {
   "use strict";
 
-  const APP_VERSION = "0.1.0";
+  const APP_VERSION = "0.1.1";
   const DEFAULT_BASE_URL = "https://api.x.ai/v1";
   const DEFAULT_MODEL = "grok-3";
 
-  const LLM_SYSTEM_PROMPT = `You are an expert at converting traditional recipes into Enhanced Tabular Recipe Notation (eTRN) inspired by Cooking for Engineers' Tabular Recipe Notation.
+  const LLM_SYSTEM_PROMPT = `You are an expert at converting traditional recipes into Tabular Recipe Notation (TRN) exactly like Cooking for Engineers (Michael Chu).
 Output ONLY valid JSON with this structure:
 {
-"meta": {"title": "", "yield": "", "source": "", "total_times": {"active": "", "passive": "", "total": ""}},
+"meta": {"title": "", "yield": "", "source": "", "total_times": {"active": "", "passive": "", "total": ""}, "banner": "optional top note e.g. Preheat oven to 375°F"},
 "equipment": [],
 "mise_en_place": [{"item": "", "notes": ""}],
-"ingredients": [{"id": "i0", "qty_us": "", "qty_metric": "", "name": "", "prep": "", "raw": ""}],
-"stages": [{"id": "st1", "label": "short label", "duration": "", "temp": null, "equipment": [], "actions": {"i0": "concise action ≤8 words"}, "produces": ""}],
+"ingredients": [{"id": "i0", "qty_us": "", "qty_metric": "", "name": "", "prep": "", "raw": "1 cup (220 g) unsalted butter"}],
+"stages": [
+  {"id": "st1", "action": "soften", "members": ["i0"]},
+  {"id": "st2", "action": "beat", "members": ["i0", "i1", "i2", "i3"]}
+],
 "notes": [],
-"markdown_table": "full ready-to-render Markdown table with | Ingredient | Stage1 | Stage2 | ... |"
+"markdown_table": ""
 }
-Rules:
-
-Rows = ingredients ordered by first use. Prefer dual units.
-Columns = chronological process stages (5–10 stages). Labels very short (e.g. "melt", "cream", "fold", "bake 350°F 25min").
-Cells = extremely concise action for that ingredient in that stage, or empty.
-Separate pure mise-en-place when clear.
-Preserve every critical temperature, time, and "until ..." condition.
-Make markdown_table dense and scannable like classic Cooking for Engineers tables.`;
-
-  const ACTION_KEYWORDS = [
-    ["prep", ["chop", "dice", "mince", "slice", "peel", "grate", "zest", "measure", "sift"]],
-    ["melt", ["melt", "soften"]],
-    ["heat", ["heat", "warm", "preheat", "bring to"]],
-    ["saute", ["saute", "sauté", "fry", "brown the", "until brown", "sear", "sweat"]],
-    ["mix", ["mix", "stir", "whisk", "beat", "cream", "fold", "combine", "blend"]],
-    ["simmer", ["simmer", "boil", "poach", "reduce", "braise", "stew"]],
-    ["bake", ["bake", "roast", "broil", "grill", "toast", "oven"]],
-    ["rest", ["rest", "cool", "chill", "refrigerate", "freeze", "marinate", "proof", "rise", "sit"]],
-    ["finish", ["serve", "plate", "garnish", "drizzle", "top", "season", "adjust", "transfer", "pour"]],
-  ];
+CRITICAL: LEFT column = ingredients with quantities, contiguous mixture groups.
+Process columns are a TIMELINE (no stage header row). Action text lives in cells.
+Multi-ingredient steps: action on first row of group; siblings blank (rowspan).
+Parallel prep allowed in the same column. stages[].members = ingredient ids; stages[].action = cell text.
+Preserve temps/times/until conditions. Short CFE-style imperatives.`;
 
   const STOPWORDS = new Set([
-    "a", "an", "the", "and", "or", "of", "to", "in", "into", "with", "for", "on",
-    "until", "about", "over", "under", "by", "from", "as", "at", "is", "are",
-    "be", "cup", "cups", "tbsp", "tsp", "tablespoon", "teaspoon", "tablespoons",
-    "teaspoons", "ounce", "ounces", "oz", "lb", "lbs", "pound", "pounds", "g",
-    "kg", "ml", "l", "optional", "plus", "more",
+    "a","an","the","and","or","of","to","in","into","with","for","on","until","about",
+    "over","under","by","from","as","at","is","are","be","cup","cups","tbsp","tsp",
+    "tablespoon","teaspoon","tablespoons","teaspoons","ounce","ounces","oz","lb","lbs",
+    "pound","pounds","g","kg","ml","l","optional","plus","more","baking","pan","sheet",
+    "bowl","mixture","dough","batter","heat","oven","minutes","minute","hour","hours",
   ]);
 
-  // --- DOM ---
   const $ = (id) => document.getElementById(id);
   const llmToggle = $("llm-toggle");
   const llmSettings = $("llm-settings");
   const convertBtn = $("convert-btn");
   const statusEl = $("status");
   const results = $("results");
+  let lastEtrn = null;
 
-  if (!convertBtn || !statusEl || !results) {
-    console.error("TRN: missing required DOM nodes; converter not bound");
-  } else {
+  function setStatus(msg, kind) {
+    if (!statusEl) return;
+    statusEl.textContent = msg || "";
+    statusEl.classList.remove("err", "ok");
+    if (kind) statusEl.classList.add(kind);
+  }
+
+  if (convertBtn && statusEl && results) {
     if (llmToggle && llmSettings) {
       llmToggle.addEventListener("change", () => {
         llmSettings.hidden = !llmToggle.checked;
@@ -77,20 +70,12 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
         if (frame && frame.contentWindow) frame.contentWindow.print();
       });
     }
+  } else {
+    console.error("TRN: missing required DOM nodes");
   }
 
-  let lastEtrn = null;
-
-  function setStatus(msg, kind) {
-    if (!statusEl) return;
-    statusEl.textContent = msg || "";
-    statusEl.classList.remove("err", "ok");
-    if (kind) statusEl.classList.add(kind);
-  }
-
-  // --- Parse paste ---
   function cleanLines(text) {
-    return text
+    return String(text || "")
       .split(/\r?\n/)
       .map((l) =>
         l
@@ -105,7 +90,6 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
   function parsePasted(text) {
     text = text.trim();
     if (!text) return null;
-    // JS has no Python-style inline flags inline flags — use /im on the literal.
     const ingM = text.match(/^(ingredients?)\s*:?\s*$/im);
     const instM = text.match(
       /^(instructions?|directions?|method|steps?|preparation)\s*:?\s*$/im
@@ -113,13 +97,11 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
     let title = "Untitled recipe";
     let ingredients = [];
     let instructions = [];
-
     if (ingM && instM && ingM.index < instM.index) {
       const head = text.slice(0, ingM.index).trim();
       if (head) title = head.split(/\r?\n/)[0].trim() || title;
-      const ingBlock = text.slice(ingM.index + ingM[0].length, instM.index);
+      ingredients = cleanLines(text.slice(ingM.index + ingM[0].length, instM.index));
       const instBlock = text.slice(instM.index + instM[0].length);
-      ingredients = cleanLines(ingBlock);
       const numbered = [
         ...instBlock.matchAll(
           /(?:^|\n)\s*(?:\d+[\.\)]\s+|step\s+\d+[:\.]?\s+)([^\n]+)/gi
@@ -149,10 +131,17 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
         instructions = body.slice(cut);
       }
     }
-    return { title, ingredients, instructions, yield: "", source: "", total_time: "", raw_text: text };
+    return {
+      title,
+      ingredients,
+      instructions,
+      yield: "",
+      source: "",
+      total_time: "",
+      raw_text: text,
+    };
   }
 
-  // --- Scrape via Pages Function ---
   async function scrapeUrl(url) {
     let res;
     try {
@@ -175,8 +164,7 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
     }
     if (!res.ok) {
       throw new Error(
-        data.error ||
-          `Scrape failed (HTTP ${res.status}). Paste the recipe text instead.`
+        data.error || `Scrape failed (HTTP ${res.status}). Paste the recipe text instead.`
       );
     }
     if (!data.recipe) {
@@ -185,7 +173,6 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
     return data.recipe;
   }
 
-  /** Normalize scrape/paste into ingredients + instructions when possible. */
   function normalizeRecipe(recipe) {
     if (!recipe) return null;
     let out = { ...recipe };
@@ -198,16 +185,15 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
         out = {
           ...parsed,
           title: out.title || parsed.title,
-          source: out.source || parsed.source || "",
-          yield: out.yield || parsed.yield || "",
-          total_time: out.total_time || parsed.total_time || "",
+          source: out.source || "",
+          yield: out.yield || "",
+          total_time: out.total_time || "",
         };
       }
     }
     return out;
   }
 
-  // --- Rule-based eTRN ---
   function ingredientName(raw) {
     let s = raw.trim();
     s = s.replace(
@@ -221,174 +207,323 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
 
   function nameTokens(name) {
     const toks = (name.toLowerCase().match(/[a-zA-Z][a-zA-Z\-']+/g) || []);
-    return new Set(toks.filter((t) => !STOPWORDS.has(t) && t.length > 2));
+    const out = new Set();
+    for (const t of toks) {
+      if (STOPWORDS.has(t) || t.length <= 2) continue;
+      out.add(t);
+      if (t.endsWith("es") && t.length > 4) out.add(t.slice(0, -2));
+      else if (t.endsWith("s") && t.length > 3) out.add(t.slice(0, -1));
+      else out.add(t + "s");
+    }
+    return out;
   }
 
-  function hasKw(text, kw) {
-    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    // Word-ish boundary without lookbehind (broader browser support).
-    const re = new RegExp(`(?:^|[^a-z])${escaped}(?:$|[^a-z])`, "i");
-    return re.test(text);
-  }
-
-  function stageLabel(instruction, index) {
+  function matchIngredients(instruction, ingObjs) {
     const low = instruction.toLowerCase();
-    const temp = instruction.match(/(\d{2,3})\s*°\s*([FC])/i);
-    const timeM = instruction.match(
-      /(\d+\s*(?:-\s*\d+)?\s*(?:minutes?|mins?|hours?|hrs?|seconds?|secs?))/i
+    const instTokens = nameTokens(instruction);
+    const hits = [];
+    for (const ing of ingObjs) {
+      const tokens = nameTokens(ing.name);
+      let hit = false;
+      for (const t of tokens) {
+        if (instTokens.has(t)) {
+          hit = true;
+          break;
+        }
+      }
+      if (!hit) {
+        for (const t of tokens) {
+          if (t.length > 3 && new RegExp(`(?:^|[^a-z])${t}(?:$|[^a-z])`, "i").test(low)) {
+            hit = true;
+            break;
+          }
+        }
+      }
+      if (hit) hits.push(ing.id);
+    }
+    return hits;
+  }
+
+  function processAction(instruction, index) {
+    let text = instruction.trim().replace(/^\d+[\.\)]\s*/, "");
+    const low = text.toLowerCase();
+    const temp = text.match(/(\d{2,3})\s*°\s*([FC])/i);
+    const timeM = text.match(
+      /(\d+\s*(?:-\s*\d+)?\s*(?:minutes?|mins?|hours?|hrs?))/i
     );
-    for (const [label, kws] of ACTION_KEYWORDS) {
-      for (const kw of kws) {
-        if (hasKw(low, kw)) {
-          let parts = [label];
-          if (temp && ["bake", "heat", "roast", "broil", "grill"].includes(label)) {
-            parts = [`${label} ${temp[1]}°${temp[2].toUpperCase()}`];
-          }
-          if (timeM && ["bake", "simmer", "rest", "cook", "roast"].includes(label)) {
-            let t = timeM[1].toLowerCase().replace(/\s+/g, "");
-            t = t.replace(/minutes?/, "min").replace(/hours?/, "hr");
-            parts.push(t);
-          }
-          return parts.join(" ").slice(0, 40);
-        }
+    const time = () => {
+      if (!timeM) return "";
+      return timeM[1]
+        .replace(/\s+/g, " ")
+        .replace(/minutes?|mins?/i, "min")
+        .replace(/hours?|hrs?/i, "hr");
+    };
+    if (/\bpreheat\b/.test(low)) {
+      return temp ? `preheat ${temp[1]}°${temp[2].toUpperCase()}` : "preheat oven";
+    }
+    if (/\bsoften\b/.test(low)) return "soften";
+    if (/\bcream\b/.test(low)) return "cream";
+    if (/\beggs?\b/.test(low) && /\b(beat|whisk|add)\b/.test(low)) {
+      return /\bone\b|\bat a time\b/.test(low)
+        ? "beat in one egg at a time"
+        : "beat in eggs";
+    }
+    if (
+      /\bset aside\b|\bin a (?:separate |small )?bowl\b/.test(low) &&
+      /\b(mix|combine|whisk)\b/.test(low)
+    ) {
+      return "mix";
+    }
+    if (
+      /\bflour\b/.test(low) &&
+      /\b(beat in|stir in|fold in|add.*flour|flour mixture)\b/.test(low)
+    ) {
+      return /\bslow|little at a time|gradually\b/.test(low)
+        ? "slowly beat in flour"
+        : "beat in flour";
+    }
+    if (/\b(form|scoop|drop|shape|portion)\b/.test(low)) {
+      return /\b(ball|cookie|dough)\b/.test(low)
+        ? "form into rough balls on a baking pan"
+        : "form and arrange";
+    }
+    if (/\b(bake|roast)\b/.test(low)) {
+      const verb = /\bbake\b/.test(low) ? "bake" : "roast";
+      let bits = [verb];
+      if (temp) bits = [`${verb} ${temp[1]}°${temp[2].toUpperCase()}`];
+      if (time()) bits.push(time());
+      return bits.join(" ");
+    }
+    for (const verb of [
+      "beat","whisk","fold","stir","cream","melt","simmer","boil","saute","sauté",
+      "brown","sear","chill","cool","serve","mix","combine","blend",
+    ]) {
+      if (new RegExp(`(?:^|[^a-z])${verb}(?:$|[^a-z])`, "i").test(low)) {
+        return verb === "sauté" || verb === "brown" || verb === "sear" ? "saute" : verb;
       }
     }
-    const words = instruction.match(/[A-Za-z0-9°]+/g) || [];
+    const words = text.match(/[A-Za-z0-9°/.\-]+/g) || [];
     if (!words.length) return `step ${index + 1}`;
-    return words.slice(0, 4).join(" ").toLowerCase().slice(0, 32);
+    let phrase = words.slice(0, 8).join(" ");
+    if (phrase.length > 42) phrase = phrase.slice(0, 40).replace(/\s+\S*$/, "") + "…";
+    return phrase.charAt(0).toLowerCase() + phrase.slice(1);
   }
 
-  function cellAction(instruction, ingName) {
-    const low = instruction.toLowerCase();
-    for (const [, kws] of ACTION_KEYWORDS) {
-      for (const kw of kws) {
-        if (hasKw(low, kw)) {
-          const until = instruction.match(/until\s+([^.;,]{3,40})/i);
-          const temp = instruction.match(/(\d{2,3}\s*°\s*[FC])/i);
-          const bits = [kw];
-          if (temp && ["bake", "heat", "roast", "preheat", "cook"].includes(kw)) {
-            bits.push(temp[1].replace(/\s+/g, ""));
-          }
-          if (until && ["cook", "bake", "simmer", "brown", "stir", "whisk"].includes(kw)) {
-            bits.push("until " + until[1].trim().slice(0, 24));
-          }
-          if (instruction.length < 60) return instruction.trim().slice(0, 48);
-          return bits.join(" ").slice(0, 48);
-        }
-      }
+  function extractBanner(instructions) {
+    const banner = [];
+    const rest = [];
+    for (const inst of instructions) {
+      if (/\bpreheat\b/i.test(inst)) banner.push(inst.replace(/^\d+[\.\)]\s*/, "").trim());
+      else rest.push(inst);
     }
-    const first = (ingName.toLowerCase().split(/\s+/)[0] || "");
-    const idx = first ? low.indexOf(first) : -1;
-    if (idx >= 0) {
-      const snippet = instruction.slice(Math.max(0, idx - 20), idx + 40).trim();
-      return snippet.replace(/^\W+|\W+$/g, "").slice(0, 48) || "use";
-    }
-    return "add";
+    return [banner.join("; "), rest.length ? rest : instructions];
   }
 
-  function buildMarkdownTable(ingredients, stages) {
-    const headers = ["Ingredient", ...stages.map((s) => s.label)];
-    const sep = headers.map(() => "---");
-    const lines = [
-      "| " + headers.join(" | ") + " |",
-      "| " + sep.join(" | ") + " |",
-    ];
-    for (const ing of ingredients) {
+  function buildMarkdownTable(ingredients, stages, banner) {
+    const n = stages.length;
+    const lines = [];
+    if (banner) {
+      lines.push("| " + [banner, ...Array(n).fill("")].join(" | ") + " |");
+    }
+    lines.push("| " + Array(n + 1).fill("---").join(" | ") + " |");
+    const idToRow = Object.fromEntries(ingredients.map((ing, ri) => [ing.id, ri]));
+    ingredients.forEach((ing, ri) => {
       let label = ing.raw || ing.name || "";
-      if (label.length > 48) label = ing.name || label.slice(0, 48);
+      if (label.length > 56) label = (ing.name || label).slice(0, 56);
       const cells = [label];
       for (const st of stages) {
-        cells.push((st.actions && st.actions[ing.id]) || "");
+        const members = st.members || Object.keys(st.actions || {});
+        const action = st.action || st.label || "";
+        if (!members.includes(ing.id)) {
+          cells.push("");
+          continue;
+        }
+        const memberRows = members
+          .filter((m) => idToRow[m] !== undefined)
+          .map((m) => idToRow[m])
+          .sort((a, b) => a - b);
+        let runStart = ri;
+        while (memberRows.includes(runStart - 1)) runStart--;
+        cells.push(ri === runStart ? action : "");
       }
-      lines.push("| " + cells.map((c) => String(c).replace(/\|/g, "/")).join(" | ") + " |");
-    }
+      lines.push(
+        "| " + cells.map((c) => String(c).replace(/\|/g, "/")).join(" | ") + " |"
+      );
+    });
     return lines.join("\n");
+  }
+
+  function renderCfeHtml(ingredients, stages, banner, dark) {
+    const idToRow = Object.fromEntries(ingredients.map((ing, ri) => [ing.id, ri]));
+    const nRows = ingredients.length;
+    const nCols = stages.length;
+    const skip = Array.from({ length: nRows }, () => Array(nCols).fill(false));
+    const rowspanAt = {};
+    const textAt = {};
+    stages.forEach((st, ci) => {
+      const members = st.members || Object.keys(st.actions || {});
+      const action = st.action || st.label || "";
+      const memberRows = [
+        ...new Set(members.filter((m) => idToRow[m] !== undefined).map((m) => idToRow[m])),
+      ].sort((a, b) => a - b);
+      let run = [];
+      const flush = () => {
+        if (!run.length) return;
+        const head = run[0];
+        textAt[`${head},${ci}`] = action;
+        rowspanAt[`${head},${ci}`] = run.length;
+        for (const r of run.slice(1)) skip[r][ci] = true;
+        run = [];
+      };
+      for (const r of memberRows) {
+        if (run.length && r !== run[run.length - 1] + 1) flush();
+        run.push(r);
+      }
+      flush();
+    });
+    const cls = dark ? "trn cfe dark" : "trn cfe";
+    let html = `<table class="${cls}">`;
+    if (banner) {
+      html += `<tr class="banner"><td class="ing banner-ing"></td><td class="banner-cell" colspan="${Math.max(
+        nCols,
+        1
+      )}">${esc(banner)}</td></tr>`;
+    }
+    ingredients.forEach((ing, ri) => {
+      const label = ing.raw || ing.name || "";
+      html += "<tr>";
+      html += `<td class="ing">${esc(label)}</td>`;
+      for (let ci = 0; ci < nCols; ci++) {
+        if (skip[ri][ci]) continue;
+        const span = rowspanAt[`${ri},${ci}`] || 1;
+        const txt = textAt[`${ri},${ci}`] || "";
+        const rs = span > 1 ? ` rowspan="${span}"` : "";
+        const cellCls = txt ? "act" : "empty";
+        html += `<td class="${cellCls}"${rs}>${esc(txt)}</td>`;
+      }
+      html += "</tr>";
+    });
+    html += "</table>";
+    return html;
   }
 
   function ruleBasedEtrn(recipe) {
     let ingredientsRaw = recipe.ingredients || [];
-    let instructions = recipe.instructions || [];
+    let instructions = [...(recipe.instructions || [])];
     if (!ingredientsRaw.length && recipe.raw_text) {
       ingredientsRaw = cleanLines(recipe.raw_text).slice(0, 30);
     }
     if (!instructions.length) {
       instructions = ["Combine and cook according to recipe.", "Serve."];
     }
-    let stagesSrc = instructions.slice(0, 12);
+    let [banner, rest] = extractBanner(instructions);
+    instructions = rest;
     if (instructions.length > 12) {
-      stagesSrc = instructions.slice(0, 10).concat(instructions.slice(-2));
+      instructions = instructions.slice(0, 10).concat(instructions.slice(-2));
     }
-
     const ingObjs = ingredientsRaw.map((raw, i) => {
       const name = ingredientName(raw);
       const prep = raw.includes(",") ? raw.split(",").slice(1).join(",").trim() : "";
       return { id: `i${i}`, qty_us: "", qty_metric: "", name, prep, raw };
     });
-
-    const stages = stagesSrc.map((inst, si) => {
-      const label = stageLabel(inst, si);
-      const actions = {};
-      const instTokens = nameTokens(inst);
-      for (const ing of ingObjs) {
-        const tokens = nameTokens(ing.name);
-        let hit = false;
-        for (const t of tokens) {
-          if (instTokens.has(t)) {
-            hit = true;
-            break;
-          }
-        }
-        if (!hit) {
-          const low = inst.toLowerCase();
-          for (const t of tokens) {
-            if (t.length > 3 && low.includes(t)) {
-              hit = true;
-              break;
+    const mainMixture = [];
+    const stages = [];
+    const firstUse = {};
+    instructions.forEach((inst, si) => {
+      const action = processAction(inst, si);
+      const hits = matchIngredients(inst, ingObjs);
+      const low = inst.toLowerCase();
+      const isSide =
+        /\bin a (?:separate |small )?bowl\b|\bset aside\b|\breserve\b/.test(low) ||
+        (hits.length &&
+          mainMixture.length &&
+          !hits.some((h) => mainMixture.includes(h)) &&
+          /\b(mix|combine|whisk)\b/.test(low) &&
+          !/\b(add|fold|beat in|stir in)\b/.test(low));
+      const streamOnly = /\b(form|shape|scoop|drop|portion|bake|roast|serve|plate|cool|chill|rest)\b/.test(
+        low
+      );
+      let members;
+      if (
+        hits.length &&
+        !(
+          streamOnly &&
+          !/\b(butter|sugar|flour|egg|salt|oil|milk|cream|cheese|onion|garlic|chicken|beef|pork|fish)\b/.test(
+            low
+          )
+        )
+      ) {
+        members = [...hits];
+        if (!isSide && mainMixture.length) {
+          if (
+            /\b(add|fold|beat in|stir in|combine)\b/.test(low) ||
+            hits.some((h) => mainMixture.includes(h))
+          ) {
+            const merged = [];
+            for (const iid of mainMixture.concat(hits)) {
+              if (!merged.includes(iid)) merged.push(iid);
             }
+            members = merged;
           }
         }
-        if (hit) actions[ing.id] = cellAction(inst, ing.name);
+        if (!isSide) {
+          for (const iid of members) {
+            if (!mainMixture.includes(iid)) mainMixture.push(iid);
+          }
+        }
+      } else {
+        members = mainMixture.length
+          ? [...mainMixture]
+          : ingObjs[0]
+            ? [ingObjs[0].id]
+            : [];
+      }
+      for (const iid of members) {
+        if (firstUse[iid] === undefined) firstUse[iid] = si;
       }
       let duration = "";
-      const timeM = inst.match(/(\d+\s*(?:-\s*\d+)?\s*(?:minutes?|mins?|hours?|hrs?))/i);
+      const timeM = inst.match(
+        /(\d+\s*(?:-\s*\d+)?\s*(?:minutes?|mins?|hours?|hrs?))/i
+      );
       if (timeM) duration = timeM[1];
       let temp = null;
       const tempM = inst.match(/(\d{2,3})\s*°\s*([FC])/i);
       if (tempM) temp = `${tempM[1]}°${tempM[2].toUpperCase()}`;
-      return {
+      stages.push({
         id: `st${si + 1}`,
-        label,
+        action,
+        label: action,
+        members,
         duration,
         temp,
         equipment: [],
-        actions,
+        actions: Object.fromEntries(members.map((id) => [id, action])),
         produces: "",
-      };
-    });
-
-    const firstUse = {};
-    stages.forEach((st, si) => {
-      Object.keys(st.actions).forEach((iid) => {
-        if (firstUse[iid] === undefined) firstUse[iid] = si;
       });
     });
-    ingObjs.sort((a, b) => (firstUse[a.id] ?? 999) - (firstUse[b.id] ?? 999) || a.id.localeCompare(b.id));
-
-    const mise = [];
-    for (const ing of ingObjs) {
-      if (ing.prep && firstUse[ing.id] === undefined) {
-        mise.push({ item: ing.name, notes: ing.prep });
-      } else if (ing.prep) {
-        mise.push({ item: ing.name, notes: `prep: ${ing.prep}` });
-      }
+    const orderIndex = Object.fromEntries(ingObjs.map((ing, i) => [ing.id, i]));
+    ingObjs.sort(
+      (a, b) =>
+        (firstUse[a.id] ?? 999) - (firstUse[b.id] ?? 999) ||
+        orderIndex[a.id] - orderIndex[b.id]
+    );
+    const idOrder = Object.fromEntries(ingObjs.map((ing, i) => [ing.id, i]));
+    for (const st of stages) {
+      st.members = [...(st.members || [])].sort(
+        (a, b) => (idOrder[a] ?? 999) - (idOrder[b] ?? 999)
+      );
     }
-
-    const md = buildMarkdownTable(ingObjs, stages);
+    const mise = ingObjs
+      .filter((ing) => ing.prep)
+      .map((ing) => ({ item: ing.name, notes: `prep: ${ing.prep}` }));
+    const md = buildMarkdownTable(ingObjs, stages, banner);
+    const html = renderCfeHtml(ingObjs, stages, banner, false);
     return {
       meta: {
         title: recipe.title || "Untitled recipe",
         yield: recipe.yield || "",
         source: recipe.source || "",
+        banner,
         total_times: { active: "", passive: "", total: recipe.total_time || "" },
       },
       equipment: [],
@@ -396,10 +531,11 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
       ingredients: ingObjs,
       stages,
       notes: [
-        "Generated by TRN rule-based converter. Toggle LLM path for denser stage labels.",
+        "Cooking for Engineers–style TRN: left = ingredients; right = process timeline; blank cells under an action share that mixture (rowspan).",
       ],
       markdown_table: md,
-      generator: { path: "rule-based", version: APP_VERSION },
+      html_table: html,
+      generator: { path: "rule-based", version: APP_VERSION, format: "cfe-trn" },
     };
   }
 
@@ -413,45 +549,61 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
       instructions: recipe.instructions,
       raw_text: (recipe.raw_text || "").slice(0, 8000),
     };
-    const res = await fetch(`${(baseUrl || DEFAULT_BASE_URL).replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: model || DEFAULT_MODEL,
-        temperature: 0.2,
-        messages: [
-          { role: "system", content: LLM_SYSTEM_PROMPT },
-          {
-            role: "user",
-            content:
-              "Convert this recipe to eTRN JSON only:\n\n" +
-              JSON.stringify(userPayload, null, 2),
-          },
-        ],
-      }),
-    });
+    const res = await fetch(
+      `${(baseUrl || DEFAULT_BASE_URL).replace(/\/$/, "")}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: model || DEFAULT_MODEL,
+          temperature: 0.2,
+          messages: [
+            { role: "system", content: LLM_SYSTEM_PROMPT },
+            {
+              role: "user",
+              content:
+                "Convert this recipe to Cooking-for-Engineers TRN JSON only:\n\n" +
+                JSON.stringify(userPayload, null, 2),
+            },
+          ],
+        }),
+      }
+    );
     if (!res.ok) {
       const t = await res.text();
       throw new Error(`LLM HTTP ${res.status}: ${t.slice(0, 200)}`);
     }
     const body = await res.json();
-    let content = (body.choices && body.choices[0] && body.choices[0].message && body.choices[0].message.content) || "";
+    let content =
+      (body.choices &&
+        body.choices[0] &&
+        body.choices[0].message &&
+        body.choices[0].message.content) ||
+      "";
     content = content.trim();
     if (content.startsWith("```")) {
       content = content.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
     }
     const data = JSON.parse(content);
-    if (!data.markdown_table) {
-      data.markdown_table = buildMarkdownTable(data.ingredients || [], data.stages || []);
+    const ings = data.ingredients || [];
+    const stages = data.stages || [];
+    for (const st of stages) {
+      if (!st.action && st.label) st.action = st.label;
+      if (!st.members) st.members = Object.keys(st.actions || {});
+      if (!st.label) st.label = st.action || "";
     }
+    const banner = (data.meta && data.meta.banner) || "";
+    data.markdown_table = buildMarkdownTable(ings, stages, banner);
+    data.html_table = renderCfeHtml(ings, stages, banner, false);
     data.generator = {
       path: "llm",
       model: model || DEFAULT_MODEL,
       base_url: baseUrl || DEFAULT_BASE_URL,
       version: APP_VERSION,
+      format: "cfe-trn",
     };
     data.meta = data.meta || {};
     if (!data.meta.title) data.meta.title = recipe.title;
@@ -459,7 +611,6 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
     return data;
   }
 
-  // --- Render ---
   function esc(s) {
     return String(s)
       .replace(/&/g, "&amp;")
@@ -468,65 +619,17 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
       .replace(/"/g, "&quot;");
   }
 
-  function mdTableToHtml(md) {
-    const lines = md
-      .trim()
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter(Boolean);
-    if (lines.length < 2) return `<pre>${esc(md)}</pre>`;
-    const rows = [];
-    for (const ln of lines) {
-      if (/^\|?\s*:?---/.test(ln)) continue;
-      rows.push(ln.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim()));
-    }
-    if (!rows.length) return `<pre>${esc(md)}</pre>`;
-    const head = rows[0];
-    const body = rows.slice(1);
-    const th = head.map((c) => `<th>${esc(c)}</th>`).join("");
-    const trs = body
-      .map((r) => {
-        while (r.length < head.length) r.push("");
-        return (
-          "<tr>" +
-          r
-            .slice(0, head.length)
-            .map((c) => `<td>${esc(c)}</td>`)
-            .join("") +
-          "</tr>"
-        );
-      })
-      .join("");
-    return `<table class="trn"><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>`;
-  }
-
   function printableHtml(etrn) {
     const meta = etrn.meta || {};
     const title = meta.title || "Recipe";
+    const banner = meta.banner || "";
+    const ings = etrn.ingredients || [];
+    const stages = etrn.stages || [];
+    const table =
+      etrn.html_table || renderCfeHtml(ings, stages, banner, false);
     const yield_ = meta.yield || "";
     const source = meta.source || "";
     const times = meta.total_times || {};
-    const table = mdTableToHtml(etrn.markdown_table || "");
-    const mise = etrn.mise_en_place || [];
-    const notes = etrn.notes || [];
-    let miseHtml = "";
-    if (mise.length) {
-      miseHtml =
-        "<h2>Mise en place</h2><ul>" +
-        mise
-          .filter((m) => m.item)
-          .map(
-            (m) =>
-              `<li><strong>${esc(m.item)}</strong>${m.notes ? " — " + esc(m.notes) : ""}</li>`
-          )
-          .join("") +
-        "</ul>";
-    }
-    let notesHtml = "";
-    if (notes.length) {
-      notesHtml =
-        "<h2>Notes</h2><ul>" + notes.map((n) => `<li>${esc(String(n))}</li>`).join("") + "</ul>";
-    }
     const sub = [
       yield_ ? `Yield: ${yield_}` : "",
       times.total ? `Total: ${times.total}` : "",
@@ -534,33 +637,29 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
     ]
       .filter(Boolean)
       .join(" · ");
-
     return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"/><title>${esc(title)} — eTRN</title>
+<html lang="en"><head><meta charset="utf-8"/><title>${esc(title)} — TRN</title>
 <style>
 @page{margin:12mm}
 body{font-family:system-ui,sans-serif;color:#111;background:#fff;margin:0;padding:16px;font-size:11pt;line-height:1.35}
 h1{font-size:18pt;margin:0 0 4px}
 .sub{color:#444;font-size:9pt;margin-bottom:14px}
 table.trn{border-collapse:collapse;width:100%;font-size:9pt;font-family:ui-monospace,monospace}
-table.trn th,table.trn td{border:1px solid #222;padding:4px 6px;vertical-align:top}
-table.trn th{background:#111;color:#fff;font-weight:600;text-align:left}
-table.trn td:first-child,table.trn th:first-child{font-weight:600;white-space:nowrap;max-width:14em}
-table.trn tr:nth-child(even) td{background:#f6f6f6}
-h2{font-size:12pt;margin:16px 0 6px}
-ul{margin:0 0 8px 1.2em;padding:0}
+table.trn td{border:1px solid #222;padding:5px 7px;vertical-align:middle}
+table.trn td.ing{font-weight:600;white-space:nowrap;background:#f4f4f4;text-align:left;max-width:16em}
+table.trn td.act{text-align:center;font-weight:600}
+table.trn tr.banner td{background:#111;color:#fff;font-weight:600;text-align:left}
+table.trn tr.banner td.banner-ing{width:0;padding:0;border-right:0}
 .howto{margin-top:18px;font-size:9pt;color:#333}
 @media print{body{padding:0}}
 </style></head><body>
 <h1>${esc(title)}</h1>
 <div class="sub">${esc(sub)}</div>
 ${table}
-${miseHtml}
-${notesHtml}
-<div class="howto"><strong>How to read this table.</strong>
-Rows are ingredients in first-use order. Columns are chronological process stages.
-A cell holds the short action for that ingredient in that stage; empty means idle.
-Read left → right across a row to follow one ingredient; read a column for one stage.</div>
+<div class="howto"><strong>How to read this table (Cooking for Engineers TRN).</strong>
+Left column = ingredients with quantities. Columns to the right = process timeline (left → right).
+An action spanning several rows = one mixture. Blank under an action = still in that mixture.
+Separate filled cells in the same column = parallel work.</div>
 </body></html>`;
   }
 
@@ -578,24 +677,29 @@ Read left → right across a row to follow one ingredient; read a column for one
     lastEtrn = etrn;
     results.hidden = false;
     const meta = etrn.meta || {};
-    $("result-title").textContent = meta.title || "eTRN table";
+    $("result-title").textContent = meta.title || "TRN table";
     const gen = etrn.generator || {};
     $("result-sub").textContent = [
       gen.path ? `path: ${gen.path}` : "",
+      "format: cfe-trn",
       meta.yield ? `yield: ${meta.yield}` : "",
-      meta.source ? meta.source : "",
+      meta.source || "",
       (etrn.ingredients || []).length + " ingredients",
-      (etrn.stages || []).length + " stages",
+      (etrn.stages || []).length + " process steps",
     ]
       .filter(Boolean)
       .join(" · ");
-
-    $("table-host").innerHTML = mdTableToHtml(etrn.markdown_table || "");
+    const banner = meta.banner || "";
+    const table =
+      etrn.html_table ||
+      renderCfeHtml(etrn.ingredients || [], etrn.stages || [], banner, true);
+    $("table-host").innerHTML = table.replace(
+      'class="trn cfe"',
+      'class="trn cfe dark"'
+    );
     $("json-pre").textContent = JSON.stringify(etrn, null, 2);
     $("md-pre").textContent = etrn.markdown_table || "";
-    const html = printableHtml(etrn);
-    const frame = $("print-frame");
-    frame.srcdoc = html;
+    $("print-frame").srcdoc = printableHtml(etrn);
   }
 
   function downloadJson() {
@@ -621,29 +725,24 @@ Read left → right across a row to follow one ingredient; read a column for one
   }
 
   async function onConvert() {
-    const urlEl = $("url");
-    const pasteEl = $("paste");
-    const url = (urlEl && urlEl.value ? urlEl.value : "").trim();
-    const paste = pasteEl && pasteEl.value ? pasteEl.value : "";
+    const url = ($("url") && $("url").value.trim()) || "";
+    const paste = ($("paste") && $("paste").value) || "";
     if (convertBtn) convertBtn.disabled = true;
     setStatus("Working…");
     if (results) results.hidden = true;
     lastEtrn = null;
-
     try {
       let recipe = null;
       if (url) {
         setStatus("Fetching recipe URL…");
         try {
           recipe = normalizeRecipe(await scrapeUrl(url));
-          setStatus("Fetched URL — building table…", "ok");
+          setStatus("Fetched URL — building CFE matrix…", "ok");
         } catch (e) {
           if (paste.trim()) {
             setStatus(`URL failed (${e.message}); using paste`, "err");
             recipe = normalizeRecipe(parsePasted(paste));
-          } else {
-            throw e;
-          }
+          } else throw e;
         }
       } else if (paste.trim()) {
         setStatus("Parsing paste…");
@@ -651,7 +750,6 @@ Read left → right across a row to follow one ingredient; read a column for one
       } else {
         throw new Error("Provide a recipe URL or paste recipe text.");
       }
-
       if (
         !recipe ||
         (!(recipe.ingredients && recipe.ingredients.length) &&
@@ -661,7 +759,6 @@ Read left → right across a row to follow one ingredient; read a column for one
           "Could not extract ingredients or instructions. Paste a clearer recipe with Ingredients and Instructions headers."
         );
       }
-
       let etrn;
       if (llmToggle && llmToggle.checked) {
         const key = ($("api-key") && $("api-key").value.trim()) || "";
@@ -681,7 +778,6 @@ Read left → right across a row to follow one ingredient; read a column for one
       } else {
         etrn = ruleBasedEtrn(recipe);
       }
-
       showResults(etrn);
       setStatus("Done", "ok");
     } catch (e) {
