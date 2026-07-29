@@ -1,4 +1,4 @@
-/* TRN layout — brand: f00-theme-13 Heartbox (Onyx logo · zine body · chip chrome) */
+/* Brand: f00-theme-14 — Heart-Shaped Box contrasts · Bleach boxes */
 :root {
   --max: 56rem;
   --pad: clamp(1rem, 3vw, 2rem);
@@ -52,7 +52,7 @@ body {
   left: -999px;
   top: 0;
   background: var(--accent);
-  color: #000000;
+  color: var(--f00-ink, #1a1214);
   padding: 0.5rem 1rem;
   z-index: 100;
 }
@@ -125,7 +125,7 @@ main {
 .dot {
   width: 0.5rem;
   height: 0.5rem;
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent);
 }
@@ -150,10 +150,10 @@ main {
 .panel {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 1.25rem 1.25rem 1.5rem;
   margin-bottom: 1.25rem;
-  backdrop-filter: blur(4px);
+  backdrop-filter: none;
 }
 .panel.soft { background: transparent; }
 
@@ -188,7 +188,7 @@ main {
 
 .llm-box {
   border: 1px dashed var(--line);
-  border-radius: 4px;
+  border-radius: 0;
   padding: 0.85rem;
   margin-bottom: 1rem;
   background: var(--bg);
@@ -223,7 +223,7 @@ textarea {
   color: var(--fg);
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
   padding: 0.55rem 0.65rem;
   width: 100%;
 }
@@ -245,7 +245,7 @@ textarea { resize: vertical; min-height: 10rem; line-height: 1.45; }
   font-family: var(--mono);
   font-size: 0.85rem;
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: 0;
   border: 1px solid var(--line);
   padding: 0.55rem 1rem;
   cursor: pointer;
@@ -255,7 +255,7 @@ textarea { resize: vertical; min-height: 10rem; line-height: 1.45; }
 }
 .btn.primary {
   background: var(--accent);
-  color: #000000;
+  color: var(--f00-ink, #1a1214);
   border-color: var(--accent);
 }
 .btn.primary:hover { filter: brightness(1.05); }
@@ -289,7 +289,7 @@ textarea { resize: vertical; min-height: 10rem; line-height: 1.45; }
 .table-scroll {
   overflow-x: auto;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
   margin-bottom: 1rem;
 }
 
@@ -308,7 +308,7 @@ table.trn th, table.trn td {
 }
 table.trn th {
   background: var(--accent);
-  color: #000000;
+  color: var(--f00-ink, #1a1214);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -347,7 +347,7 @@ table.trn td { color: var(--fg); }
   padding: 0.75rem;
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
   overflow: auto;
   max-height: 22rem;
   font-size: 0.75rem;
@@ -359,7 +359,7 @@ table.trn td { color: var(--fg); }
   width: 100%;
   min-height: 28rem;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
   background: #fff;
 }
 
@@ -375,7 +375,7 @@ table.trn td { color: var(--fg); }
   font-size: 0.85em;
   background: rgba(255, 255, 255, 0.06);
   padding: 0.05em 0.3em;
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 .code {
@@ -383,7 +383,7 @@ table.trn td { color: var(--fg); }
   padding: 0.85rem 1rem;
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
   overflow-x: auto;
   font-size: 0.8rem;
   color: var(--accent);
