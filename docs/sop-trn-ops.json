@@ -1,0 +1,262 @@
+{
+  "org": "f00",
+  "org_sub": "TRN · Enhanced Tabular Recipe Notation · https://trn.f00.sh",
+  "reply_to": "OPS/TRN",
+  "to": "Maintainers and Release Operators",
+  "from": "Project Engineering",
+  "subject": "TRN operator standard operating procedure (run, convert, deploy, release)",
+  "ref": "AGENTS.md, README.md, CHANGELOG.md",
+  "date": "2026-07-29",
+  "doc_id": "SOP-TRN-OPS-001",
+  "doc_title": "STANDARD OPERATING PROCEDURE",
+  "version": "v0.1.0",
+  "opening": "Bottom line: TRN converts recipes into Enhanced Tabular Recipe Notation (eTRN). Operators run the Streamlit app locally, use or deploy the Cloudflare Pages site, and ship SemVer releases with the full documentation pack.",
+  "sections": [
+    {
+      "heading": "1. Purpose",
+      "body": "This memorandum is the living operator handbook for TRN. It states how to run the converter, extract recipes, deploy the product site, and ship a versioned release."
+    },
+    {
+      "heading": "2. Scope",
+      "body": "This SOP covers product operations for TRN. It does not replace the README, man page, or the live site at https://trn.f00.sh.",
+      "items": [
+        "product identity",
+        "local Streamlit run",
+        "URL and paste extraction",
+        "rule-based and LLM conversion paths",
+        "Cloudflare Pages deploy",
+        "release ship flow and docs pack",
+        "failure responses"
+      ]
+    },
+    {
+      "heading": "3. Product identity",
+      "table": {
+        "headers": ["Item", "Value"],
+        "rows": [
+          ["Product name", "TRN"],
+          ["Notation", "Enhanced Tabular Recipe Notation (eTRN)"],
+          ["Site", "https://trn.f00.sh"],
+          ["Repository", "github.com/f00-sh/trn"],
+          ["License", "MIT"],
+          ["Local app", "app.py (Streamlit)"],
+          ["Edge host", "Cloudflare Pages project f00-trn"],
+          ["URL scrape", "Pages Function POST /api/scrape"],
+          ["Default branch", "main"],
+          ["Published version", "v0.1.0"]
+        ]
+      }
+    },
+    {
+      "heading": "4. Product laws",
+      "steps": [
+        {
+          "n": "4.1",
+          "text": "Keep the converter simple: URL or paste in, eTRN table and JSON out."
+        },
+        {
+          "n": "4.2",
+          "text": "Rule-based path must work without network keys. LLM path is optional."
+        },
+        {
+          "n": "4.3",
+          "text": "Never commit API keys or secrets. Users paste keys in session only."
+        },
+        {
+          "n": "4.4",
+          "text": "Cloudflare Pages is the delivery plane for the public site. GitHub is source and release history only."
+        },
+        {
+          "n": "4.5",
+          "text": "Every SemVer release updates CHANGELOG, file_id.diz, README, man, SOP PDF, and this-version release memo PDF."
+        }
+      ]
+    },
+    {
+      "heading": "5. Day-to-day operator flow",
+      "body": "Use this path for local conversion and quality checks.",
+      "steps": [
+        {
+          "n": "5.1",
+          "text": "Clone github.com/f00-sh/trn and enter the repository root."
+        },
+        {
+          "n": "5.2",
+          "text": "Create a virtual environment and install requirements.txt."
+        },
+        {
+          "n": "5.3",
+          "text": "Run: streamlit run app.py"
+        },
+        {
+          "n": "5.4",
+          "text": "Paste a recipe with Ingredients and Instructions headers. Click Convert."
+        },
+        {
+          "n": "5.5",
+          "text": "Confirm Markdown table, eTRN JSON download, and printable view."
+        },
+        {
+          "n": "5.6",
+          "text": "Optional: enable LLM path with an xAI or OpenAI-compatible key for denser stage labels."
+        }
+      ],
+      "figure": {
+        "path": "figures/trn-table-sample.png",
+        "title": "Sample eTRN process matrix",
+        "caption": "Ingredient rows × chronological stage columns. Empty cells mean idle. Dense phosphor table style matches the product site.",
+        "max_height": 280,
+        "border": true
+      },
+      "flowchart": {
+        "title": "Day-to-day convert quality gates",
+        "color": true,
+        "nodes": [
+          { "id": "start", "label": "Start", "shape": "terminator" },
+          { "id": "input", "label": "URL or paste recipe", "shape": "process" },
+          { "id": "extract", "label": "Extract title / ingredients / steps", "shape": "process" },
+          { "id": "ok_ext", "label": "Extract OK?", "shape": "decision" },
+          { "id": "paste_fb", "label": "Use paste fallback", "shape": "process" },
+          { "id": "path", "label": "LLM enabled?", "shape": "decision" },
+          { "id": "rule", "label": "Rule-based eTRN", "shape": "process" },
+          { "id": "llm", "label": "LLM eTRN JSON", "shape": "process" },
+          { "id": "out", "label": "Table + JSON + print HTML", "shape": "process" },
+          { "id": "end", "label": "Done", "shape": "terminator" }
+        ],
+        "edges": [
+          { "from": "start", "to": "input" },
+          { "from": "input", "to": "extract" },
+          { "from": "extract", "to": "ok_ext" },
+          { "from": "ok_ext", "to": "paste_fb", "label": "no" },
+          { "from": "paste_fb", "to": "path" },
+          { "from": "ok_ext", "to": "path", "label": "yes" },
+          { "from": "path", "to": "llm", "label": "yes" },
+          { "from": "path", "to": "rule", "label": "no" },
+          { "from": "llm", "to": "out" },
+          { "from": "rule", "to": "out" },
+          { "from": "out", "to": "end" }
+        ]
+      }
+    },
+    {
+      "heading": "6. Extraction rules",
+      "body": "Prefer structured sources. Fail soft with clear messages.",
+      "items": [
+        "Primary (local): recipe-scrapers scrape_me / scrape_html",
+        "Fallback: schema.org/Recipe JSON-LD",
+        "Edge site: POST /api/scrape then client parse",
+        "If blocked (HTTP 401/403/429): instruct operator to paste text",
+        "Paste parser: look for Ingredients and Instructions headers"
+      ]
+    },
+    {
+      "heading": "7. Cloudflare deploy",
+      "steps": [
+        {
+          "n": "7.1",
+          "text": "Ensure site/ and functions/ are correct on main."
+        },
+        {
+          "n": "7.2",
+          "text": "Deploy: npx wrangler pages deploy site --project-name=f00-trn --branch=main"
+        },
+        {
+          "n": "7.3",
+          "text": "Confirm custom domain trn.f00.sh resolves and shows the converter."
+        },
+        {
+          "n": "7.4",
+          "text": "Smoke: paste a short recipe, convert, download JSON."
+        },
+        {
+          "n": "7.5",
+          "text": "Smoke: URL scrape against a JSON-LD recipe page when network allows."
+        }
+      ]
+    },
+    {
+      "heading": "8. Release ship flow",
+      "body": "Ship only after convert smoke and docs pack are complete.",
+      "steps": [
+        {
+          "n": "8.1",
+          "text": "Bump version surfaces: CHANGELOG, file_id.diz, README/site version strings, man page if needed."
+        },
+        {
+          "n": "8.2",
+          "text": "Update docs/sop-trn-ops.json and re-render SOP PDF."
+        },
+        {
+          "n": "8.3",
+          "text": "Write docs/releases/vX.Y.Z-memo.json for this version only; render memo PDF."
+        },
+        {
+          "n": "8.4",
+          "text": "Commit, tag vX.Y.Z, push main and tags."
+        },
+        {
+          "n": "8.5",
+          "text": "Create GitHub Release; attach SOP PDF, memo PDF, file_id.diz."
+        },
+        {
+          "n": "8.6",
+          "text": "Deploy Pages if site changed; update f00 hub product card when copy or first ship requires it."
+        }
+      ],
+      "flowchart": {
+        "title": "Release / ship flow",
+        "color": true,
+        "nodes": [
+          { "id": "r0", "label": "Start release", "shape": "terminator" },
+          { "id": "r1", "label": "Version + CHANGELOG + DIZ", "shape": "process" },
+          { "id": "r2", "label": "SOP + memo PDFs", "shape": "process" },
+          { "id": "r3", "label": "Smoke convert OK?", "shape": "decision" },
+          { "id": "r4", "label": "Fix converter / docs", "shape": "process" },
+          { "id": "r5", "label": "Tag vX.Y.Z + GitHub Release", "shape": "process" },
+          { "id": "r6", "label": "Deploy Pages f00-trn", "shape": "process" },
+          { "id": "r7", "label": "Update f00.sh card if needed", "shape": "process" },
+          { "id": "r8", "label": "Ship complete", "shape": "terminator" }
+        ],
+        "edges": [
+          { "from": "r0", "to": "r1" },
+          { "from": "r1", "to": "r2" },
+          { "from": "r2", "to": "r3" },
+          { "from": "r3", "to": "r4", "label": "no" },
+          { "from": "r4", "to": "r3" },
+          { "from": "r3", "to": "r5", "label": "yes" },
+          { "from": "r5", "to": "r6" },
+          { "from": "r6", "to": "r7" },
+          { "from": "r7", "to": "r8" }
+        ]
+      }
+    },
+    {
+      "heading": "9. Failure responses",
+      "table": {
+        "headers": ["Symptom", "Action"],
+        "rows": [
+          ["Site blocks scrape", "Paste full recipe text; do not retry aggressively"],
+          ["Empty extract", "Require Ingredients and Instructions headers in paste"],
+          ["LLM error", "Fall back to rule-based path; check base_url and model"],
+          ["Pages deploy fail", "Check CLOUDFLARE_API_TOKEN, project name f00-trn, wrangler login"],
+          ["DNS miss for trn.f00.sh", "Confirm Pages custom domain + f00.sh zone CNAME"]
+        ]
+      }
+    },
+    {
+      "heading": "10. References",
+      "items": [
+        "https://trn.f00.sh",
+        "https://f00.sh",
+        "https://github.com/f00-sh/trn",
+        "README.md, AGENTS.md, CHANGELOG.md",
+        "docs/releases/ for version memos"
+      ]
+    }
+  ],
+  "signature": {
+    "name": "Project Engineering",
+    "title": "f00 / TRN"
+  },
+  "cc": ["f00 hub maintainers"]
+}

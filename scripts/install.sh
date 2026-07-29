@@ -1,45 +1,27 @@
 #!/usr/bin/env bash
-# trn — install from GitHub Releases (curl | sh).
-# Must install the binary/artifact AND man page(s). Incomplete without man pages.
+# Local Streamlit setup helper for TRN (not a binary installer).
 set -euo pipefail
 
-PROJECT="trn"
-REPO="f00-sh/trn"
-# Override for testing: INSTALL_BASE=/tmp/foo ./install.sh
-INSTALL_BIN_DIR="${INSTALL_BIN_DIR:-${HOME}/.local/bin}"
-INSTALL_MAN_DIR="${INSTALL_MAN_DIR:-${HOME}/.local/share/man/man1}"
-RELEASE_API="https://api.github.com/repos/${REPO}/releases/latest"
-# Prefer a fixed asset name pattern on each release, e.g.:
-#   trn-<version>-<os>-<arch>.tar.gz  including man pages
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 
-die() {
-  printf '%s\n' "error: $*" >&2
+echo "TRN — local Streamlit setup"
+echo "Repo: $ROOT"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required" >&2
   exit 1
-}
+fi
 
-need_cmd() {
-  command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
-}
+python3 -m venv .venv
+# shellcheck disable=SC1091
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 
-need_cmd curl
-need_cmd uname
-need_cmd mkdir
-
-os="$(uname -s | tr '[:upper:]' '[:lower:]')"
-arch="$(uname -m)"
-case "$arch" in
-  x86_64 | amd64) arch="x86_64" ;;
-  aarch64 | arm64) arch="aarch64" ;;
-  *) die "unsupported architecture: $arch" ;;
-esac
-
-# TODO: map os/arch to the release asset name this project publishes.
-# Example asset: ${PROJECT}-vX.Y.Z-${os}-${arch}.tar.gz
-die "scaffold install.sh: set asset download + extract for ${PROJECT} (${os}/${arch}). Install man pages into ${INSTALL_MAN_DIR}."
-
-# Expected shape after you fill this in:
-# 1. Resolve latest tag / asset URL from releases (or use /latest/download/NAME).
-# 2. Download to a temp dir; verify checksum when you publish one.
-# 3. Install binary to ${INSTALL_BIN_DIR} (create dir; no needless sudo).
-# 4. Install man page(s) to ${INSTALL_MAN_DIR} (required).
-# 5. Print success and how to run: man ${PROJECT}
+echo
+echo "OK. Run:"
+echo "  source .venv/bin/activate"
+echo "  streamlit run app.py"
+echo
+echo "Live product: https://trn.f00.sh"

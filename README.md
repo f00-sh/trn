@@ -1,107 +1,126 @@
-# trn
+# TRN
 
-Enhanced Tabular Recipe Notation (eTRN) converter — Cooking for Engineers style process matrices
+**[trn.f00.sh](https://trn.f00.sh)** — Enhanced Tabular Recipe Notation (eTRN) converter.
 
-Keep this README in sync with the man page(s) under [man/](man/) and the
-GitHub Pages site under [docs/](docs/).
+Convert any recipe into a dense process matrix: **ingredient rows** × **chronological stages**, inspired by [Cooking for Engineers](https://www.cookingforengineers.com/) Tabular Recipe Notation.
 
-## Requirements
+> **Status:** v0.1.0. Live on Cloudflare Pages. Rule-based path works offline; optional LLM path (xAI / OpenAI-compatible) for high-quality stage labels.
 
-- Python (version: document the supported toolchain)
+## What you get
 
-## Install
+| Output | Description |
+|--------|-------------|
+| **TRN table** | Scannable Markdown/HTML matrix |
+| **eTRN JSON** | Structured export (`meta`, `ingredients`, `stages`, …) |
+| **Printable view** | Clean HTML for browser Print → Save as PDF |
 
-Every install method installs man page(s). Prefer the curl path from releases.
+**Inputs:** recipe URL and/or pasted title + ingredients + instructions.
 
-### Curl (releases)
+**Conversion paths**
 
-```text
-curl -fsSL https://github.com/f00-sh/trn/releases/latest/download/install.sh | sh
+1. **Rule-based** — always available, zero cost, works offline (paste) / with fetch (URL).
+2. **LLM** — optional; paste an xAI or OpenAI-compatible API key (default `https://api.x.ai/v1`, model `grok-3`).
+
+## Hosting
+
+Cloudflare is the delivery plane for the product site:
+
+| Surface | Host |
+|---------|------|
+| Site + converter | Cloudflare Pages project `f00-trn` → https://trn.f00.sh |
+| URL scrape | Pages Function `POST /api/scrape` |
+| Local Streamlit | `app.py` on your machine |
+
+GitHub holds source and releases only.
+
+## Quick start (local Streamlit)
+
+```bash
+pip install streamlit recipe-scrapers openai requests beautifulsoup4
+streamlit run app.py
 ```
 
-### Package managers
+Or:
 
-Document only channels this project maintains (creator chooses among Arch/AUR, Homebrew, RPM, deb). Remove unused sections.
-
-```text
-# Arch / AUR (if offered):
-# yay -S trn
-
-# Homebrew (if offered):
-# brew install f00-sh/tap/trn
-
-# RPM (if offered):
-# sudo rpm -Uvh trn-VERSION.rpm
-
-# deb (if offered):
-# sudo dpkg -i trn_VERSION_amd64.deb
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
-### From source
+## Quick start (site)
 
-```text
-# Language-native or make install when useful for developers.
-# cargo install --path .
-# go install ./cmd/trn@latest
+Open https://trn.f00.sh — or from a clone:
+
+```bash
+npx wrangler pages dev site
 ```
 
-## Usage
+## Deploy
 
-```text
-# Show the common commands a new user needs first.
+```bash
+npx wrangler pages deploy site --project-name=f00-trn --branch=main
 ```
 
-Full option reference: see [man/trn.1.md](man/trn.1.md).
+CI: [`.github/workflows/pages.yml`](.github/workflows/pages.yml) deploys on push to `site/**` or `functions/**`.
 
-## Configuration
+## How to read a TRN table
 
-Document flags, environment variables, and config files.
-Provide a `.env.example` when environment variables are required. Never commit real secrets.
+1. **Rows** = ingredients (first-use order).
+2. **Columns** = short chronological stages (`melt`, `cream`, `bake 350°F 25min`).
+3. **Cells** = concise action for that ingredient in that stage; empty = idle.
+4. Read a **row** left→right to follow one ingredient; read a **column** for one stage.
+5. Critical temps, times, and *until…* conditions stay in labels or cells.
 
-## Documentation
+## Layout
 
-| Surface | Location |
-|---|---|
-| This README | [README.md](README.md) |
-| Man page(s) | [man/](man/) |
-| GitHub Pages | [docs/](docs/) |
-| Changelog | [CHANGELOG.md](CHANGELOG.md) |
-| Scene card | [file_id.diz](file_id.diz) |
+| Path | Role |
+|------|------|
+| [`app.py`](app.py) | Single-file Streamlit app |
+| [`site/`](site/) | Public converter (Pages) |
+| [`functions/api/scrape.js`](functions/api/scrape.js) | URL extraction |
+| [`requirements.txt`](requirements.txt) | Python deps |
+| [`man/trn.1.md`](man/trn.1.md) | Man page source |
+
+## Documents
+
+| Doc | Path |
+|-----|------|
+| Operator SOP (NASA) | [`docs/sop-trn-ops.pdf`](docs/sop-trn-ops.pdf) · [JSON](docs/sop-trn-ops.json) |
+| Release memo 0.1.0 | [`docs/releases/v0.1.0-memo.pdf`](docs/releases/v0.1.0-memo.pdf) · [JSON](docs/releases/v0.1.0-memo.json) |
+| Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
+| Site | [https://trn.f00.sh](https://trn.f00.sh) |
+| Man page | [`man/trn.1.md`](man/trn.1.md) |
+| Scene card | [`file_id.diz`](file_id.diz) |
 
 ## Scene card
 
-Each SemVer release ships a crafted `file_id.diz` (ACiD / 16colo.rs-style block ASCII
-archive card) next to the changelog notes. Keep this preview identical to root
-[file_id.diz](file_id.diz). GitHub Releases attach the same file as an asset.
-
 ```text
-╔══════════════════════════════════════════════════╗
-║▓▓▓▓░░░░  trn  ░░░░▓▓▓▓              ║
-║████████████████████████████████████████████████  ║
-║  ▄█▀  SCENE CARD  ▀█▄   release identity         ║
-║████████████████████████████████████████████████  ║
-║  v0.0.0  ·  MIT  ·  2026                     ║
-║  Enhanced Tabular Recipe Notation (eTRN) converter — Cooking for Engineers style process matrices                         ║
-║  github:f00-sh/trn          ║
-╚══════════════════════════════════════════════════╝
+░▒▓████████████████████████████████████████████▓▒░
+█▓▒░  T R N  ·  scene card  ·  v0.1.0  ░▒▓█
+████████████████████████████████████████████████████
+█  tabular recipe notation · eTRN process matrix  █
+█  ingredient rows × chronological stages         █
+█  rule-based · optional grok/openai llm          █
+█  site: trn.f00.sh  ·  github: f00-sh/trn        █
+█  MIT  ·  f00  ·  2026                           █
+░▒▓████████████████████████████████████████████▓▒░
 ```
 
-## Development
+## Configuration
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+| Setting | Default | Notes |
+|---------|---------|--------|
+| LLM base_url | `https://api.x.ai/v1` | Sidebar / site LLM panel |
+| LLM model | `grok-3` | Or `grok-3-mini` / any chat model |
+| API key | (none) | User-supplied; never committed |
 
-```text
-# Format, test, and build commands for this language
-```
-
-## Versioning
-
-This project uses [Semantic Versioning](https://semver.org/). See [CHANGELOG.md](CHANGELOG.md).
-Every published version also refreshes [file_id.diz](file_id.diz) and attaches it to the GitHub Release.
+See [`.env.example`](.env.example). Do not put real keys in git.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md).
+See [SECURITY.md](SECURITY.md). Report vulnerabilities privately.
 
 ## License
 

@@ -1,0 +1,81 @@
+{
+  "org": "f00",
+  "org_sub": "TRN \u00b7 https://trn.f00.sh",
+  "reply_to": "REL/TRN",
+  "to": "Distribution",
+  "from": "Project Engineering",
+  "subject": "TRN v0.1.0 release memorandum",
+  "date": "2026-07-29",
+  "ref": "CHANGELOG.md [0.1.0], github.com/f00-sh/trn",
+  "opening": "This memorandum covers TRN version 0.1.0 only. TRN ships as an Enhanced Tabular Recipe Notation converter: Streamlit local app plus Cloudflare Pages site trn.f00.sh.",
+  "sections": [
+    {
+      "heading": "1. Summary",
+      "body": "v0.1.0 is the first public f00 product release of TRN. Operators and users convert recipes from URL or paste into dense eTRN process matrices (Markdown table, JSON, printable HTML). Rule-based conversion works without paid APIs. Optional LLM path defaults to xAI Grok."
+    },
+    {
+      "heading": "2. Added",
+      "items": [
+        "app.py single-file Streamlit converter",
+        "Rule-based eTRN matrix builder",
+        "Optional LLM path (OpenAI-compatible; default api.x.ai/v1, grok-3)",
+        "recipe-scrapers + JSON-LD extraction with paste fallback",
+        "site/ f00-styled converter on Cloudflare Pages project f00-trn",
+        "Pages Function POST /api/scrape",
+        "Docs pack: SOP, this memo, man, file_id.diz, CHANGELOG"
+      ]
+    },
+    {
+      "heading": "3. Changed",
+      "body": "Not applicable \u2014 first release."
+    },
+    {
+      "heading": "4. Fixed",
+      "body": "Not applicable \u2014 first release."
+    },
+    {
+      "heading": "5. Security",
+      "body": "No authentication surface. API keys are user-supplied in session only and are not stored by the product. Do not commit secrets."
+    },
+    {
+      "heading": "6. Upgrade / install",
+      "steps": [
+        {
+          "n": "6.1",
+          "text": "Use https://trn.f00.sh for the hosted converter."
+        },
+        {
+          "n": "6.2",
+          "text": "Local: pip install streamlit recipe-scrapers openai requests beautifulsoup4 && streamlit run app.py"
+        },
+        {
+          "n": "6.3",
+          "text": "Deploy operators: npx wrangler pages deploy site --project-name=f00-trn --branch=main"
+        }
+      ]
+    },
+    {
+      "heading": "7. Verification",
+      "items": [
+        "Paste a multi-step recipe; convert without LLM; table has ingredient rows and stage columns",
+        "Download eTRN JSON; structure includes meta, ingredients, stages, markdown_table",
+        "Open printable view; Print preview shows bordered table",
+        "Optional: URL scrape against a schema.org Recipe page",
+        "Optional: LLM path with valid key returns denser labels"
+      ]
+    },
+    {
+      "heading": "8. References",
+      "items": [
+        "https://trn.f00.sh",
+        "https://github.com/f00-sh/trn/releases/tag/v0.1.0",
+        "docs/sop-trn-ops.pdf",
+        "CHANGELOG.md section 0.1.0"
+      ]
+    }
+  ],
+  "signature": {
+    "name": "Project Engineering",
+    "title": "f00 / TRN"
+  }
+}

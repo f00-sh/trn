@@ -1,97 +1,39 @@
-# trn
+# TRN
 
-Enhanced Tabular Recipe Notation (eTRN) converter — Cooking for Engineers style process matrices
+**[trn.f00.sh](https://trn.f00.sh)** — Enhanced Tabular Recipe Notation converter.
 
-This page is the GitHub Pages entry for the project. Keep it in sync with
-[README.md](../README.md) and the man page(s) under [man/](../man/).
+Ingredient rows × chronological stages. Cooking for Engineers–style process matrices.
 
-## Why this project exists
+## Product
 
-Lead with purpose. State who it helps and what problem it solves.
-Use clear public narrative (NASA Stylebook + AP Style habits).
-Keep sentences short.
+| Surface | URL / path |
+|---------|------------|
+| Live site | https://trn.f00.sh |
+| Source | https://github.com/f00-sh/trn |
+| Local app | `streamlit run app.py` |
 
-## Requirements
+## Documents
 
-- Python (document the supported toolchain and version)
+| Doc | Path |
+|-----|------|
+| Operator SOP (NASA) | [sop-trn-ops.pdf](sop-trn-ops.pdf) · [JSON](sop-trn-ops.json) |
+| Release memo v0.1.0 | [releases/v0.1.0-memo.pdf](releases/v0.1.0-memo.pdf) · [JSON](releases/v0.1.0-memo.json) |
+| Changelog | [../CHANGELOG.md](../CHANGELOG.md) |
+| Scene card | [../file_id.diz](../file_id.diz) |
 
-## Install
+## Install (local)
 
-Write install steps as procedures (Simplified Technical English).
-Every install method installs man page(s).
-
-### Curl (releases)
-
-```text
-curl -fsSL https://github.com/f00-sh/trn/releases/latest/download/install.sh | sh
+```bash
+pip install streamlit recipe-scrapers openai requests beautifulsoup4
+streamlit run app.py
 ```
 
-### Package managers
+## How to read a TRN table
 
-List only channels this project offers (Arch/AUR, Homebrew, RPM, deb as chosen).
-Do not list packages that do not exist.
+- **Rows** = ingredients (first use order)
+- **Columns** = chronological stages
+- **Cells** = short actions; empty = idle
 
-### From source
+## Version
 
-```text
-# Add from-source steps when useful for developers.
-```
-
-## Usage
-
-```text
-# Show the common commands a new user needs first.
-```
-
-See also the man page for full option reference.
-
-## Configuration
-
-Document flags, environment variables, and config files.
-Provide a `.env.example` when environment variables are required.
-Never commit real secrets.
-
-## Documentation set
-
-| Surface | Location |
-|---|---|
-| README | [README.md](../README.md) |
-| Man page(s) | [man/](../man/) |
-| This site | `docs/` (GitHub Pages) |
-| Changelog | [CHANGELOG.md](../CHANGELOG.md) |
-| Scene card | [file_id.diz](../file_id.diz) |
-| Security | [SECURITY.md](../SECURITY.md) |
-
-## Scene card
-
-Each SemVer release ships a crafted `file_id.diz` scene card (ACiD / 16colo.rs-style
-block ASCII). Keep this preview identical to the repository root file and to the
-GitHub Release asset named `file_id.diz`.
-
-```text
-╔══════════════════════════════════════════════════╗
-║▓▓▓▓░░░░  trn  ░░░░▓▓▓▓              ║
-║████████████████████████████████████████████████  ║
-║  ▄█▀  SCENE CARD  ▀█▄   release identity         ║
-║████████████████████████████████████████████████  ║
-║  v0.0.0  ·  MIT  ·  2026                     ║
-║  Enhanced Tabular Recipe Notation (eTRN) converter — Cooking for Engineers style process matrices                         ║
-║  github:f00-sh/trn          ║
-╚══════════════════════════════════════════════════╝
-```
-
-See [file_id.diz](../file_id.diz) and [CHANGELOG.md](../CHANGELOG.md).
-
-## Development
-
-See [CONTRIBUTING.md](../CONTRIBUTING.md).
-
-## Versioning
-
-This project uses [Semantic Versioning](https://semver.org/).
-See [CHANGELOG.md](../CHANGELOG.md).
-Every published version refreshes `file_id.diz` and attaches it to the GitHub Release.
-
-## License
-
-[MIT](../LICENSE) © f00
+v0.1.0 · MIT · f00

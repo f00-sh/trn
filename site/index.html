@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TRN — Enhanced Tabular Recipe Notation</title>
+  <meta name="description" content="Convert any recipe into Enhanced Tabular Recipe Notation (eTRN): ingredient rows × chronological stages. Cooking for Engineers style process matrix." />
+  <meta name="theme-color" content="#0a0b09" />
+  <link rel="canonical" href="https://trn.f00.sh/" />
+  <meta property="og:title" content="TRN — eTRN converter" />
+  <meta property="og:description" content="Dense tabular recipe notation. Rule-based offline path + optional Grok/OpenAI LLM quality." />
+  <meta property="og:url" content="https://trn.f00.sh/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0b09'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='monospace' font-size='11' fill='%2396f06a'%3ETRN%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="crt" aria-hidden="true">
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+  </div>
+
+  <header class="top">
+    <a class="brand" href="https://f00.sh/" rel="noopener">
+      <span class="brand-mark">f00</span>
+      <span class="brand-sub">/trn</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="#convert">convert</a>
+      <a href="#howto">howto</a>
+      <a href="#docs">docs</a>
+      <a href="https://github.com/f00-sh/trn" rel="noopener">github</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <p class="eyebrow mono"><span class="dot" aria-hidden="true"></span> v0.1.0 · MIT · trn.f00.sh</p>
+      <h1>Tabular Recipe Notation</h1>
+      <p class="lede">
+        Convert any recipe into a dense process matrix —
+        <strong>ingredient rows</strong> × <strong>chronological stages</strong>.
+        Inspired by Cooking for Engineers. Rule-based works offline; optional LLM path for high-quality labels.
+      </p>
+    </section>
+
+    <section class="panel" id="convert">
+      <header class="panel-head">
+        <h2>Convert</h2>
+        <label class="toggle mono">
+          <input type="checkbox" id="llm-toggle" />
+          LLM path
+        </label>
+      </header>
+
+      <div id="llm-settings" class="llm-box" hidden>
+        <p class="hint">Key stays in this browser. Sent only to the base URL you set (default xAI).</p>
+        <div class="grid-3">
+          <label>API key
+            <input type="password" id="api-key" autocomplete="off" placeholder="xai-…" />
+          </label>
+          <label>base_url
+            <input type="text" id="base-url" value="https://api.x.ai/v1" />
+          </label>
+          <label>model
+            <input type="text" id="model" value="grok-3" />
+          </label>
+        </div>
+      </div>
+
+      <label class="field">Recipe URL
+        <input type="url" id="url" placeholder="https://…" />
+      </label>
+
+      <label class="field">Or paste full recipe text
+        <textarea id="paste" rows="12" placeholder="Title
+
+Ingredients:
+- 1 cup butter
+- …
+
+Instructions:
+1. Melt butter…
+2. …"></textarea>
+      </label>
+
+      <div class="actions">
+        <button type="button" class="btn primary" id="convert-btn">Convert</button>
+        <span class="status mono" id="status" role="status" aria-live="polite"></span>
+      </div>
+
+      <div id="results" class="results" hidden>
+        <div class="result-meta">
+          <h3 id="result-title">—</h3>
+          <p class="mono muted" id="result-sub"></p>
+        </div>
+        <div class="table-scroll" id="table-host"></div>
+
+        <div class="result-actions">
+          <button type="button" class="btn ghost" id="dl-json">Download eTRN JSON</button>
+          <button type="button" class="btn ghost" id="dl-html">Download printable HTML</button>
+          <button type="button" class="btn ghost" id="print-btn">Print / PDF</button>
+        </div>
+
+        <details class="fold">
+          <summary>Raw eTRN JSON</summary>
+          <pre id="json-pre" class="mono"></pre>
+        </details>
+        <details class="fold">
+          <summary>Markdown table source</summary>
+          <pre id="md-pre" class="mono"></pre>
+        </details>
+        <details class="fold" open>
+          <summary>Printable view</summary>
+          <iframe id="print-frame" title="Printable TRN table" class="print-frame"></iframe>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel soft" id="howto">
+      <h2>How to read this table</h2>
+      <ol class="howto">
+        <li><strong>Rows</strong> are ingredients, ordered by first use.</li>
+        <li><strong>Columns</strong> are short chronological stages (<code>melt</code>, <code>cream</code>, <code>fold</code>, <code>bake 350°F 25min</code>).</li>
+        <li>A <strong>cell</strong> is the concise action for that ingredient in that stage; empty means idle.</li>
+        <li>Read a row left→right to follow one ingredient; read a column for one stage.</li>
+        <li>Critical temperatures, times, and <em>until…</em> conditions stay in labels or cells.</li>
+      </ol>
+    </section>
+
+    <section class="panel soft" id="docs">
+      <h2>Run locally · documents</h2>
+      <pre class="code mono">pip install streamlit recipe-scrapers openai requests beautifulsoup4
+streamlit run app.py</pre>
+      <ul class="docs-list mono">
+        <li><a href="https://github.com/f00-sh/trn">github.com/f00-sh/trn</a></li>
+        <li><a href="https://github.com/f00-sh/trn/blob/main/docs/sop-trn-ops.pdf">Operator SOP (NASA PDF)</a></li>
+        <li><a href="https://github.com/f00-sh/trn/blob/main/docs/releases/v0.1.0-memo.pdf">Release memo v0.1.0</a></li>
+        <li><a href="https://f00.sh/">f00.sh</a> · product family</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span class="mono">© f00 · MIT · TRN v0.1.0</span>
+    <a class="mono muted" href="https://github.com/f00-sh/trn" rel="noopener">source</a>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

@@ -1,10 +1,9 @@
-╔══════════════════════════════════════════════════╗
-║▓▓▓▓░░░░  trn  ░░░░▓▓▓▓              ║
-║████████████████████████████████████████████████  ║
-║  ▄█▀  SCENE CARD  ▀█▄   release identity         ║
-║████████████████████████████████████████████████  ║
-║  v0.0.0  ·  MIT  ·  2026                     ║
-║  Enhanced Tabular Recipe Notation (eTRN) converter — Cooking for Engineers style process matrices                         ║
-║  github:f00-sh/trn          ║
-║  craft real ACiD-style art before first ship     ║
-╚══════════════════════════════════════════════════╝
+░▒▓████████████████████████████████████████████▓▒░
+█▓▒░  T R N  ·  scene card  ·  v0.1.0  ░▒▓█
+████████████████████████████████████████████████████
+█  tabular recipe notation · eTRN process matrix  █
+█  ingredient rows × chronological stages         █
+█  rule-based · optional grok/openai llm          █
+█  site: trn.f00.sh  ·  github: f00-sh/trn        █
+█  MIT  ·  f00  ·  2026                           █
+░▒▓████████████████████████████████████████████▓▒░
