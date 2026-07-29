@@ -263,8 +263,16 @@ textarea { resize: vertical; min-height: 10rem; line-height: 1.45; }
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.status { font-size: 0.8rem; color: var(--muted); }
-.status.err { color: var(--danger); }
+.status {
+  font-size: 0.85rem;
+  color: var(--muted);
+  min-height: 1.25em;
+  max-width: 36rem;
+}
+.status.err {
+  color: var(--danger);
+  font-weight: 600;
+}
 .status.ok { color: var(--accent); }
 .muted { color: var(--muted); }
 

@@ -4,7 +4,8 @@
  * Used by the static TRN site on Cloudflare Pages (CORS-safe).
  */
 
-const UA = "Mozilla/5.0 (compatible; TRN/0.1; +https://trn.f00.sh)";
+const UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -184,7 +185,9 @@ export async function onRequestPost(context) {
       redirect: "follow",
       headers: {
         "user-agent": UA,
-        accept: "text/html,application/xhtml+xml",
+        accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "accept-language": "en-US,en;q=0.9",
       },
     });
   } catch (e) {

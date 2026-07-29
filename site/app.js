@@ -54,21 +54,35 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
   const statusEl = $("status");
   const results = $("results");
 
-  llmToggle.addEventListener("change", () => {
-    llmSettings.hidden = !llmToggle.checked;
-  });
-
-  convertBtn.addEventListener("click", onConvert);
-  $("dl-json").addEventListener("click", () => downloadJson());
-  $("dl-html").addEventListener("click", () => downloadHtml());
-  $("print-btn").addEventListener("click", () => {
-    const frame = $("print-frame");
-    if (frame && frame.contentWindow) frame.contentWindow.print();
-  });
+  if (!convertBtn || !statusEl || !results) {
+    console.error("TRN: missing required DOM nodes; converter not bound");
+  } else {
+    if (llmToggle && llmSettings) {
+      llmToggle.addEventListener("change", () => {
+        llmSettings.hidden = !llmToggle.checked;
+      });
+    }
+    convertBtn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      onConvert();
+    });
+    const dlJson = $("dl-json");
+    const dlHtml = $("dl-html");
+    const printBtn = $("print-btn");
+    if (dlJson) dlJson.addEventListener("click", () => downloadJson());
+    if (dlHtml) dlHtml.addEventListener("click", () => downloadHtml());
+    if (printBtn) {
+      printBtn.addEventListener("click", () => {
+        const frame = $("print-frame");
+        if (frame && frame.contentWindow) frame.contentWindow.print();
+      });
+    }
+  }
 
   let lastEtrn = null;
 
   function setStatus(msg, kind) {
+    if (!statusEl) return;
     statusEl.textContent = msg || "";
     statusEl.classList.remove("err", "ok");
     if (kind) statusEl.classList.add(kind);
@@ -91,9 +105,10 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
   function parsePasted(text) {
     text = text.trim();
     if (!text) return null;
-    const ingM = text.match(/(?im)^(ingredients?)\s*:?\s*$/m);
+    // JS has no Python-style inline flags inline flags — use /im on the literal.
+    const ingM = text.match(/^(ingredients?)\s*:?\s*$/im);
     const instM = text.match(
-      /(?im)^(instructions?|directions?|method|steps?|preparation)\s*:?\s*$/m
+      /^(instructions?|directions?|method|steps?|preparation)\s*:?\s*$/im
     );
     let title = "Untitled recipe";
     let ingredients = [];
@@ -139,16 +154,57 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
 
   // --- Scrape via Pages Function ---
   async function scrapeUrl(url) {
-    const res = await fetch("/api/scrape", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
-    const data = await res.json().catch(() => ({}));
+    let res;
+    try {
+      res = await fetch("/api/scrape", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+    } catch (e) {
+      throw new Error(
+        `Network error talking to /api/scrape: ${e.message || e}. Paste the recipe instead.`
+      );
+    }
+    const raw = await res.text();
+    let data = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      data = {};
+    }
     if (!res.ok) {
-      throw new Error(data.error || `Scrape failed (HTTP ${res.status})`);
+      throw new Error(
+        data.error ||
+          `Scrape failed (HTTP ${res.status}). Paste the recipe text instead.`
+      );
+    }
+    if (!data.recipe) {
+      throw new Error(data.error || "Scrape returned no recipe. Paste the text instead.");
     }
     return data.recipe;
+  }
+
+  /** Normalize scrape/paste into ingredients + instructions when possible. */
+  function normalizeRecipe(recipe) {
+    if (!recipe) return null;
+    let out = { ...recipe };
+    const hasParts =
+      (out.ingredients && out.ingredients.length) ||
+      (out.instructions && out.instructions.length);
+    if (!hasParts && out.raw_text) {
+      const parsed = parsePasted(out.raw_text);
+      if (parsed) {
+        out = {
+          ...parsed,
+          title: out.title || parsed.title,
+          source: out.source || parsed.source || "",
+          yield: out.yield || parsed.yield || "",
+          total_time: out.total_time || parsed.total_time || "",
+        };
+      }
+    }
+    return out;
   }
 
   // --- Rule-based eTRN ---
@@ -169,7 +225,9 @@ Make markdown_table dense and scannable like classic Cooking for Engineers table
   }
 
   function hasKw(text, kw) {
-    const re = new RegExp(`(?<![a-z])${kw.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}(?![a-z])`, "i");
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Word-ish boundary without lookbehind (broader browser support).
+    const re = new RegExp(`(?:^|[^a-z])${escaped}(?:$|[^a-z])`, "i");
     return re.test(text);
   }
 
@@ -563,49 +621,58 @@ Read left → right across a row to follow one ingredient; read a column for one
   }
 
   async function onConvert() {
-    const url = $("url").value.trim();
-    const paste = $("paste").value;
-    convertBtn.disabled = true;
+    const urlEl = $("url");
+    const pasteEl = $("paste");
+    const url = (urlEl && urlEl.value ? urlEl.value : "").trim();
+    const paste = pasteEl && pasteEl.value ? pasteEl.value : "";
+    if (convertBtn) convertBtn.disabled = true;
     setStatus("Working…");
-    results.hidden = true;
+    if (results) results.hidden = true;
     lastEtrn = null;
 
     try {
       let recipe = null;
       if (url) {
+        setStatus("Fetching recipe URL…");
         try {
-          recipe = await scrapeUrl(url);
-          setStatus("Fetched URL", "ok");
+          recipe = normalizeRecipe(await scrapeUrl(url));
+          setStatus("Fetched URL — building table…", "ok");
         } catch (e) {
           if (paste.trim()) {
             setStatus(`URL failed (${e.message}); using paste`, "err");
-            recipe = parsePasted(paste);
+            recipe = normalizeRecipe(parsePasted(paste));
           } else {
             throw e;
           }
         }
       } else if (paste.trim()) {
-        recipe = parsePasted(paste);
+        setStatus("Parsing paste…");
+        recipe = normalizeRecipe(parsePasted(paste));
       } else {
         throw new Error("Provide a recipe URL or paste recipe text.");
       }
 
-      if (!recipe || (!(recipe.ingredients && recipe.ingredients.length) && !(recipe.instructions && recipe.instructions.length))) {
+      if (
+        !recipe ||
+        (!(recipe.ingredients && recipe.ingredients.length) &&
+          !(recipe.instructions && recipe.instructions.length))
+      ) {
         throw new Error(
           "Could not extract ingredients or instructions. Paste a clearer recipe with Ingredients and Instructions headers."
         );
       }
 
       let etrn;
-      if (llmToggle.checked) {
-        const key = $("api-key").value.trim();
+      if (llmToggle && llmToggle.checked) {
+        const key = ($("api-key") && $("api-key").value.trim()) || "";
         if (!key) throw new Error("LLM path requires an API key.");
         try {
+          setStatus("Calling LLM…");
           etrn = await llmEtrn(
             recipe,
             key,
-            $("base-url").value.trim() || DEFAULT_BASE_URL,
-            $("model").value.trim() || DEFAULT_MODEL
+            ($("base-url") && $("base-url").value.trim()) || DEFAULT_BASE_URL,
+            ($("model") && $("model").value.trim()) || DEFAULT_MODEL
           );
         } catch (e) {
           setStatus(`LLM failed (${e.message}); rule-based fallback`, "err");
@@ -618,9 +685,10 @@ Read left → right across a row to follow one ingredient; read a column for one
       showResults(etrn);
       setStatus("Done", "ok");
     } catch (e) {
+      console.error("TRN convert failed", e);
       setStatus(e.message || String(e), "err");
     } finally {
-      convertBtn.disabled = false;
+      if (convertBtn) convertBtn.disabled = false;
     }
   }
 })();

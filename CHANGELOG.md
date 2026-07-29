@@ -19,6 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Added
+### Fixed
 
-- (none yet)
+- Site Convert button did nothing: `app.js` used Python-style `(?im)` regex flags, which is a SyntaxError in browsers so the script never loaded. Convert now binds and reports status/errors.
