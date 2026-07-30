@@ -466,5 +466,27 @@ table.trn.cfe tr.banner td.banner-ing {
 }
 
 /* Let shared sky show through */
-.crt, .field, .scanlines, .vignette, .tint { opacity: 0.25 !important; mix-blend-mode: soft-light; }
+.crt, .scanlines, .vignette, .tint { display: none !important; }
+/* .field is form labels — keep visible */
 body { min-height: 100dvh; }
+
+
+/* trn form force — shared theme + local */
+label.field, .field {
+  display: flex !important;
+  flex-direction: column !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: #090909 !important;
+}
+#url, #paste, #api-key, #base-url, #model {
+  display: block !important;
+  visibility: visible !important;
+  min-height: 2.4rem;
+  background: #F2F4F6 !important;
+  color: #090909 !important;
+  border: 1px solid #C8CED4 !important;
+}
+#paste { min-height: 10rem !important; }
+.panel .hint, .panel .toggle { color: #090909 !important; }
+.panel-head .toggle { color: #EDE6DE !important; }
