@@ -1,3 +1,4 @@
+/* Layout only. Brand shell: https://f00.sh/theme/f00-theme.css (sky / white boxes / poppy). */
 /* Layout only. Brand: https://f00.sh/theme/f00-theme.css (ONE shared org CSS). */
 :root {
   --max: 56rem;
@@ -12,7 +13,7 @@ body {
   margin: 0;
   min-height: 100dvh;
   font-family: var(--sans);
-  background: var(--bg);
+  background: transparent;
   color: var(--fg);
   line-height: 1.55;
   text-rendering: optimizeLegibility;
@@ -191,7 +192,7 @@ main {
   border-radius: 0;
   padding: 0.85rem;
   margin-bottom: 1rem;
-  background: var(--bg);
+  background: transparent;
 }
 .hint {
   margin: 0 0 0.75rem;
@@ -221,7 +222,7 @@ textarea {
   font-family: var(--mono);
   font-size: 0.9rem;
   color: var(--fg);
-  background: var(--bg);
+  background: transparent;
   border: 1px solid var(--line);
   border-radius: 0;
   padding: 0.55rem 0.65rem;
@@ -345,7 +346,7 @@ table.trn td { color: var(--fg); }
 .fold pre {
   margin: 0.5rem 0 0;
   padding: 0.75rem;
-  background: var(--bg);
+  background: transparent;
   border: 1px solid var(--line);
   border-radius: 0;
   overflow: auto;
@@ -381,7 +382,7 @@ table.trn td { color: var(--fg); }
 .code {
   margin: 0 0 1rem;
   padding: 0.85rem 1rem;
-  background: var(--bg);
+  background: transparent;
   border: 1px solid var(--line);
   border-radius: 0;
   overflow-x: auto;
@@ -463,3 +464,7 @@ table.trn.cfe tr.banner td.banner-ing {
   padding: 0;
   border-right: none;
 }
+
+/* Let shared sky show through */
+.crt, .field, .scanlines, .vignette, .tint { opacity: 0.25 !important; mix-blend-mode: soft-light; }
+body { min-height: 100dvh; }
