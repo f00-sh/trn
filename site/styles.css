@@ -361,7 +361,7 @@ table.trn td { color: var(--fg); }
   min-height: 28rem;
   border: 1px solid var(--line);
   border-radius: 0;
-  background: #fff;
+  background: #E4E8ED;
 }
 
 .howto {
