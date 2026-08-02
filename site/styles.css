@@ -346,8 +346,9 @@ table.trn td { color: var(--fg); }
 .fold pre {
   margin: 0.5rem 0 0;
   padding: 0.75rem;
-  background: transparent;
-  border: 1px solid var(--line);
+  background: var(--f00-code-bg, #050404);
+  color: #EDE6DE;
+  border: 1px solid #C8CED4;
   border-radius: 0;
   overflow: auto;
   max-height: 22rem;
@@ -370,11 +371,12 @@ table.trn td { color: var(--fg); }
   color: var(--muted);
 }
 .howto li { margin-bottom: 0.4rem; }
-.howto strong, .howto code { color: var(--fg); }
+.howto strong { color: #8A2810; }
 .howto code {
   font-family: var(--mono);
   font-size: 0.85em;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(212, 74, 24, 0.12);
+  color: #8A2810;
   padding: 0.05em 0.3em;
   border-radius: 0;
 }
@@ -382,8 +384,9 @@ table.trn td { color: var(--fg); }
 .code {
   margin: 0 0 1rem;
   padding: 0.85rem 1rem;
-  background: transparent;
-  border: 1px solid var(--line);
+  background: var(--f00-code-bg, #050404);
+  color: #EDE6DE;
+  border: 1px solid #C8CED4;
   border-radius: 0;
   overflow-x: auto;
   font-size: 0.8rem;
@@ -492,7 +495,7 @@ label.field, .field {
 .panel-head .toggle { color: #EDE6DE !important; }
 
 
-/* trn night code */
+/* trn night code — surface only; Heartbox token dye may tint spans */
 .panel pre, .panel .code, pre.code {
   background: #050404 !important;
   color: #ede6de !important;
@@ -501,4 +504,3 @@ label.field, .field {
   padding: 0.85rem 1rem !important;
   white-space: pre-wrap !important;
 }
-.panel pre *, .panel .code * { color: #ede6de !important; }
